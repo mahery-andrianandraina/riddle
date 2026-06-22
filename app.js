@@ -66,6 +66,9 @@ const DOM = {
   videoProgressFill:                document.getElementById('video-progress-fill'),
   videoCurrentTime:                 document.getElementById('video-current-time'),
   videoDuration:                    document.getElementById('video-duration'),
+  // Fullscreen video elements
+  videoFullscreenPlayer:            document.getElementById('video-player-revelation'),
+  videoIframeContainer:             document.getElementById('yt-player-revelation'),
   // Révélation thème
   revealedThemeText: document.getElementById('revealed-theme-text'),
   btnGoToResults:    document.getElementById('btn-go-to-results'),
@@ -404,6 +407,21 @@ function bindVideoProgress(videoEl) {
 
   DOM.videoProgressBar.style.display = "flex";
 
+  // Show/hide HUD on mouse move (auto-hide after 3s)
+  let hudTimer;
+  const hud = document.querySelector('.video-floating-hud');
+  const showHUD = () => {
+    if (hud) hud.style.opacity = '1';
+    DOM.videoProgressBar.style.opacity = '1';
+    clearTimeout(hudTimer);
+    hudTimer = setTimeout(() => {
+      if (hud) hud.style.opacity = '0';
+      DOM.videoProgressBar.style.opacity = '0';
+    }, 3000);
+  };
+  document.getElementById('screen-video').addEventListener('mousemove', showHUD);
+  document.getElementById('screen-video').addEventListener('touchstart', showHUD);
+
   videoEl.addEventListener('loadedmetadata', () => {
     if (DOM.videoDuration) DOM.videoDuration.textContent = formatTime(videoEl.duration);
   });
@@ -415,12 +433,15 @@ function bindVideoProgress(videoEl) {
     if (DOM.videoCurrentTime) DOM.videoCurrentTime.textContent = formatTime(videoEl.currentTime);
   });
 
-  // Clic sur la barre pour scrubber
-  DOM.videoProgressBar.addEventListener('click', e => {
-    const rect = DOM.videoProgressBar.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    if (videoEl.duration) videoEl.currentTime = ratio * videoEl.duration;
-  });
+  // Scrub on click
+  const track = DOM.videoProgressBar.querySelector('.video-progress-track');
+  if (track) {
+    track.addEventListener('click', e => {
+      const rect = track.getBoundingClientRect();
+      const ratio = (e.clientX - rect.left) / rect.width;
+      if (videoEl.duration) videoEl.currentTime = ratio * videoEl.duration;
+    });
+  }
 }
 
 function showRevelationVideo() {
@@ -567,8 +588,9 @@ function showRevelationVideo() {
   };
   // ─────────────────────────────────────────────────────────────
 
-  DOM.videoPlayOverlay.onclick  = play;
-  DOM.btnStartVideo.onclick     = e => { e.stopPropagation(); play(); };
+  // Both the overlay and the big play button trigger play
+  DOM.videoPlayOverlay.onclick = play;
+  if (DOM.btnStartVideo) DOM.btnStartVideo.onclick = e => { e.stopPropagation(); play(); };
 
   // Skip handler (cloudinary-embed sets its own in the play block)
   if (vType !== "cloudinary-embed") {
