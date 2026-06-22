@@ -386,10 +386,14 @@ function isNativeVideo(type) {
   return type === "cloudinary" || type === "direct";
 }
 
+function isEmbedVideo(type) {
+  return type === "cloudinary-embed";
+}
+
 // Affiche le badge de source
 function showSourceBadge(type) {
   if (!DOM.videoSourceBadge) return;
-  const labels = { cloudinary: "☁️ Cloudinary", youtube: "▶ YouTube", direct: "📁 Local" };
+  const labels = { cloudinary: "☁️ Cloudinary", "cloudinary-embed": "☁️ Cloudinary", youtube: "▶ YouTube", direct: "📁 Local" };
   DOM.videoSourceBadge.textContent = labels[type] || type;
   DOM.videoSourceBadge.style.display = "block";
 }
@@ -454,39 +458,83 @@ function showRevelationVideo() {
   const play = () => {
     DOM.videoPlayOverlay.style.display = 'none';
 
-    // ── CLOUDINARY ──────────────────────────────────────────────
-    if (vType === "cloudinary") {
+    // ── CLOUDINARY EMBED (iframe player) ───────────────────────
+    if (vType === "cloudinary-embed") {
+      // Créer un iframe Cloudinary Player
+      const placeholder = DOM.ytPlayerRevelationPlaceholder;
+      placeholder.style.display = 'block';
+      placeholder.innerHTML = '';
+
+      // Paramètres embed : autoplay, controls, end-screen vers onEnded
+      const embedUrl = vId
+        + (vId.includes('?') ? '&' : '?')
+        + 'autoplay=true&controls=true&muted=false&loop=false&playsinline=true';
+
+      const iframe = document.createElement('iframe');
+      iframe.src             = embedUrl;
+      iframe.width           = '100%';
+      iframe.height          = '100%';
+      iframe.style.border    = 'none';
+      iframe.style.display   = 'block';
+      iframe.allow           = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
+      iframe.allowFullscreen = true;
+
+      // Spinner pendant le chargement de l'iframe
+      if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
+      iframe.addEventListener('load', () => {
+        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
+      });
+
+      placeholder.appendChild(iframe);
+
+      // Cloudinary Player embed envoie postMessage quand la vidéo se termine
+      window.addEventListener('message', function onCldMsg(e) {
+        if (!e.data) return;
+        try {
+          const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+          // Cloudinary envoie { event: "ended" } ou { type: "ended" }
+          if (msg.event === 'ended' || msg.type === 'ended' ||
+              (msg.info && msg.info.type === 'ended')) {
+            window.removeEventListener('message', onCldMsg);
+            onEnded();
+          }
+        } catch(err) {}
+      });
+
+      // Bouton SKIP : forcer la fin
+      DOM.btnSkipVideo.onclick = () => {
+        placeholder.innerHTML = '';
+        placeholder.style.display = 'none';
+        onEnded();
+      };
+    }
+
+    // ── CLOUDINARY DIRECT (URL .mp4) ────────────────────────────
+    else if (vType === "cloudinary") {
       if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
 
       const vid = DOM.videoPlayerRevelation;
-      vid.style.display = 'block';
-      vid.style.width   = '100%';
-      vid.style.height  = '100%';
+      vid.style.display   = 'block';
+      vid.style.width     = '100%';
+      vid.style.height    = '100%';
       vid.style.objectFit = 'cover';
-
-      // Cloudinary supporte HLS/mp4 — on utilise l'URL directe
       vid.src = vId;
       vid.load();
 
       vid.addEventListener('canplay', () => {
         if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
       }, { once: true });
-
       vid.addEventListener('waiting', () => {
         if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
       });
-
       vid.addEventListener('playing', () => {
         if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
       });
-
       vid.play().catch(err => {
         console.warn("Cloudinary play error:", err);
-        // Si autoplay bloqué → ré-afficher le bouton play
         DOM.videoPlayOverlay.style.display = 'flex';
         DOM.videoPlayOverlay.onclick = () => { DOM.videoPlayOverlay.style.display = 'none'; vid.play(); };
       });
-
       vid.onended = onEnded;
       bindVideoProgress(vid);
     }
@@ -522,13 +570,16 @@ function showRevelationVideo() {
   DOM.videoPlayOverlay.onclick  = play;
   DOM.btnStartVideo.onclick     = e => { e.stopPropagation(); play(); };
 
-  DOM.btnSkipVideo.onclick = () => {
-    if (isNativeVideo(vType)) {
-      DOM.videoPlayerRevelation.pause();
-      DOM.videoPlayerRevelation.removeAttribute('src');
-    }
-    onEnded();
-  };
+  // Skip handler (cloudinary-embed sets its own in the play block)
+  if (vType !== "cloudinary-embed") {
+    DOM.btnSkipVideo.onclick = () => {
+      if (isNativeVideo(vType)) {
+        DOM.videoPlayerRevelation.pause();
+        DOM.videoPlayerRevelation.removeAttribute('src');
+      }
+      onEnded();
+    };
+  }
 }
 
 // ==========================================================================
