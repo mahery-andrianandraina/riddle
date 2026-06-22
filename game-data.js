@@ -1,31 +1,45 @@
 // ============================================================
 // game-data.js  —  Super Mario Quiz : Qui Suis-Je ?
 // ============================================================
-// Les questions sont mélangées aléatoirement à chaque partie
-// via window.gameData.getShuffledQuestions().
-// app.js doit appeler getShuffledQuestions() au lieu de .questions
-// ============================================================
-
 window.gameData = {
   settings: {
     googleSheetsUrl: "",
     pointsPerQuestion: 1000,
-    timeLimitSeconds: 25,          // un peu plus de temps pour les questions process
+    timeLimitSeconds: 25,
     themeToReveal: "🚀 LE GRAND PROJET / HACKATHON 2026 🚀",
-    revelationVideoType: "direct",
-    revelationVideoId: "Revelation.mp4",
+
+    // --------------------------------------------------------
+    // VIDÉO D'INTRO  (jouée APRÈS toutes les questions)
+    // --------------------------------------------------------
+    // Types disponibles : "cloudinary" | "youtube" | "direct"
+    //
+    // cloudinary → collez l'URL complète Cloudinary
+    //   ex: "https://res.cloudinary.com/VOTRE_CLOUD/video/upload/v123/ma-video.mp4"
+    //
+    // youtube    → collez uniquement l'ID de la vidéo YouTube
+    //   ex: "dQw4w9WgXcQ"
+    //
+    // direct     → URL ou chemin local vers un fichier .mp4
+    //   ex: "Revelation.mp4"
+    // --------------------------------------------------------
+    revelationVideoType: "cloudinary",
+    revelationVideoId:   "https://res.cloudinary.com/VOTRE_CLOUD/video/upload/v1234567890/intro-equipe.mp4",
+
+    // --------------------------------------------------------
+    // VIDÉO DE FIN  (fond du leaderboard, en boucle muette)
+    // --------------------------------------------------------
     endingVideoType: "direct",
-    endingVideoId: "Ending.mp4"
+    endingVideoId:   "Ending.mp4"
   },
 
   // ----------------------------------------------------------
-  // TOUTES LES QUESTIONS  (pool complet)
+  // POOL DE QUESTIONS
   // ----------------------------------------------------------
   questions: [
 
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════
     // OUTILS  —  CRP & PLC
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════
     {
       id: "tool_01",
       category: "tool",
@@ -79,21 +93,21 @@ window.gameData = {
       funFact: "CRP et PLC sont deux outils complémentaires : CRP pour le commercial, PLC pour le développement tissu."
     },
 
-    // ════════════════════════════════════════════════
-    // PROCESS  —  Développement échantillons & TP
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════
+    // PROCESS  —  Développement & TP
+    // ════════════════════════════════
     {
       id: "process_01",
       category: "process",
       title: "Dans quel ordre ? (Développement échantillon)",
       clues: [
-        "Le développement d'un échantillon commence toujours par une étape de brief créatif.",
-        "Après le brief, on envoie une demande au fournisseur… mais sous quelle forme ?",
+        "Le développement d'un échantillon commence toujours par un brief créatif.",
+        "Après le brief, on envoie une demande officielle au fournisseur.",
         "La première demande officielle envoyée au fournisseur pour démarrer un développement tissu s'appelle…"
       ],
       options: ["Un PO", "Un TP (Tech Pack)", "Une LAB DIP request", "Un Strike Off"],
       correctAnswer: "Un TP (Tech Pack)",
-      funFact: "Le Tech Pack (TP) est le document technique complet envoyé au fournisseur : il contient toutes les specs matière, couleur et construction."
+      funFact: "Le Tech Pack (TP) est le document technique complet envoyé au fournisseur : specs matière, couleur et construction."
     },
     {
       id: "process_02",
@@ -101,8 +115,8 @@ window.gameData = {
       title: "Quelle est la première étape ? (Réception d'un TP)",
       clues: [
         "On vient de recevoir un TP du fournisseur. Que fait-on en premier ?",
-        "Avant de valider quoi que ce soit, on doit s'assurer que le tissu correspond aux specs techniques.",
-        "Cette étape consiste à vérifier le grammage, la composition, le laize et la couleur."
+        "Avant de valider quoi que ce soit, on s'assure que le tissu correspond aux specs techniques.",
+        "On vérifie grammage, composition, laize et coloris."
       ],
       options: [
         "On génère un PO dans CRP",
@@ -111,7 +125,7 @@ window.gameData = {
         "On fait une réunion de collection"
       ],
       correctAnswer: "On enregistre le TP dans PLC et on contrôle les specs",
-      funFact: "La première étape à la réception d'un TP est toujours l'enregistrement dans PLC suivi du contrôle qualité des specs techniques."
+      funFact: "La première étape à la réception d'un TP : enregistrement dans PLC + contrôle qualité des specs techniques."
     },
     {
       id: "process_03",
@@ -119,7 +133,7 @@ window.gameData = {
       title: "C'est quoi un LAB DIP ?",
       clues: [
         "Je suis une étape clé dans le développement coloris d'un tissu.",
-        "Je suis un petit morceau de tissu teint que le fournisseur envoie pour approbation.",
+        "Je suis un petit morceau de tissu teint envoyé par le fournisseur pour approbation.",
         "Sans mon approbation, on ne peut pas lancer la teinture en grande quantité."
       ],
       options: [
@@ -129,16 +143,16 @@ window.gameData = {
         "Une fiche technique matière"
       ],
       correctAnswer: "Un échantillon de teinte envoyé par le fournisseur",
-      funFact: "Le LAB DIP est un petit swatch teint que le fournisseur envoie pour valider la couleur avant de lancer la production en grande quantité."
+      funFact: "Le LAB DIP est un swatch teint que le fournisseur envoie pour valider la couleur avant la production en grande quantité."
     },
     {
       id: "process_04",
       category: "process",
-      title: "Dans quel ordre ? (Les étapes du strike off)",
+      title: "Quand arrive le Strike Off ?",
       clues: [
         "Le strike off intervient après le lab dip, mais avant la production.",
         "Je suis un échantillon de tissu imprimé ou tissé à l'échelle réelle.",
-        "Mon approbation est obligatoire pour valider le motif, le coloris et la qualité avant bulk."
+        "Mon approbation valide le motif, le coloris et la qualité avant le bulk."
       ],
       options: [
         "Avant le lab dip",
@@ -147,20 +161,20 @@ window.gameData = {
         "Après la réception du PO"
       ],
       correctAnswer: "Entre le lab dip et la production bulk",
-      funFact: "L'ordre est : Brief → TP → Lab Dip → Strike Off → Production Bulk. Chaque étape doit être validée avant de passer à la suivante."
+      funFact: "L'ordre est : Brief → TP → Lab Dip → Strike Off → Production Bulk. Chaque étape est validée avant de passer à la suivante."
     },
     {
       id: "process_05",
       category: "process",
       title: "Quel outil pour quelle étape ?",
       clues: [
-        "On vient de valider un Strike Off. L'équipe commerciale doit maintenant commander la production.",
-        "Ils ont besoin de créer un document officiel d'achat auprès du fournisseur tissu.",
+        "Le Strike Off vient d'être validé. L'équipe commerciale doit commander la production.",
+        "Il faut créer un document officiel d'achat auprès du fournisseur tissu.",
         "Quel outil utilisent-ils pour générer ce document ?"
       ],
       options: ["PLC", "CRP", "Excel", "Outlook"],
       correctAnswer: "CRP",
-      funFact: "Une fois le Strike Off validé, c'est CRP qui prend le relais : l'équipe commerciale génère le PO de production dans CRP."
+      funFact: "Une fois le Strike Off validé, CRP prend le relais : l'équipe génère le PO de production directement dans CRP."
     },
     {
       id: "process_06",
@@ -173,20 +187,20 @@ window.gameData = {
       ],
       options: ["CRP", "SAP", "PLC", "Jira"],
       correctAnswer: "PLC",
-      funFact: "PLC est la source de vérité pour toutes les données matière. CRP y puise les infos pour générer les PO au bon moment."
+      funFact: "PLC est la source de vérité pour toutes les données matière. CRP y puise les infos pour générer les PO."
     },
 
-    // ════════════════════════════════════════════════
-    // PERSONNALITÉ  —  Qui suis-je dans l'équipe ?
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════
+    // PERSONNALITÉ
+    // ════════════════════════════════
     {
       id: "personality_01",
       category: "personality",
-      title: "Quel profil es-tu ? (Le style de travail)",
+      title: "Quel profil es-tu ? (Style de travail)",
       clues: [
-        "Tu reçois un nouveau projet. Quelle est ta première réaction ?",
+        "Tu reçois un nouveau projet. Ta première réaction ?",
         "Tu ouvres Excel et tu crées un tableau de suivi avec des colonnes colorées avant même d'avoir lu le brief.",
-        "Ton énergie au bureau est contagieuse et tu dis souvent 'On va organiser ça proprement !'"
+        "Tu dis souvent : 'On va organiser ça proprement !'"
       ],
       options: [
         "Le Visionnaire Créatif 🎨",
@@ -231,14 +245,14 @@ window.gameData = {
         "Le Philosophe du Destin 🎲"
       ],
       correctAnswer: "Le MacGyver du Bureau 🔧",
-      funFact: "Le MacGyver du Bureau résout les problèmes avec les moyens du bord. Il a probablement déjà réparé quelque chose avec du scotch et une formule Excel."
+      funFact: "Le MacGyver du Bureau résout les problèmes avec les moyens du bord. Il a probablement réparé quelque chose avec du scotch et une formule Excel."
     },
     {
       id: "personality_04",
       category: "personality",
-      title: "Quel rôle joues-tu ? (Dans le process tissu)",
+      title: "Quel rôle joues-tu ? (Process tissu)",
       clues: [
-        "Tu es la personne qui fait le lien entre le brief créatif et le fournisseur.",
+        "Tu fais le lien entre le brief créatif et le fournisseur.",
         "Tu traduis les idées de la créa en specs techniques compréhensibles.",
         "Tu connais la différence entre un lab dip, un strike off et un bulk… par cœur."
       ],
@@ -252,9 +266,9 @@ window.gameData = {
       funFact: "Le Développeur Tissu est le pont entre la créativité et la réalité industrielle. Sans lui, un beau dessin reste un beau dessin."
     },
 
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════
     // COLLÈGUES
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════
     {
       id: "coworker_01",
       category: "coworker",
@@ -295,9 +309,9 @@ window.gameData = {
       funFact: "Amélie a déjà planifié ses vacances sur un diagramme de Gantt avec des jalons précis."
     },
 
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════
     // VIE DE BUREAU
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════
     {
       id: "office_01",
       category: "office-life",
@@ -312,24 +326,17 @@ window.gameData = {
       funFact: "Les décisions les plus importantes de l'équipe se prennent toujours devant la machine à café."
     }
 
-  ], // fin questions[]
+  ],
 
   // ----------------------------------------------------------
-  // FONCTION DE MÉLANGE  (Fisher-Yates shuffle)
-  // Appelée par app.js au démarrage de chaque partie
+  // SHUFFLE  (Fisher-Yates)
   // ----------------------------------------------------------
-  getShuffledQuestions(maxQuestions) {
-    // Copie du pool complet
+  getShuffledQuestions(max) {
     const pool = [...this.questions];
-
-    // Fisher-Yates
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-
-    // Limiter si maxQuestions est fourni
-    return maxQuestions ? pool.slice(0, maxQuestions) : pool;
+    return max ? pool.slice(0, max) : pool;
   }
-
 };
