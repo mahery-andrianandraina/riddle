@@ -104,67 +104,56 @@
       </div>
     </section>
 
-    <!-- SCREEN 3: VIDEO D'INTRO (Cloudinary / YouTube / Direct) -->
-    <section id="screen-video" class="screen">
-      <div class="video-overlay-container">
-        <div class="video-card glass-card">
+    <!-- SCREEN 3: VIDEO PLEIN ÉCRAN (Cloudinary / YouTube / Direct) -->
+    <section id="screen-video" class="screen screen-video-fullscreen">
 
-          <!-- Header -->
-          <div class="video-header">
-            <h3>🚨 SPECIAL REVELATION 🚨</h3>
-            <div class="video-header-right">
-              <span id="video-source-badge" class="video-source-badge" style="display:none;"></span>
-              <button id="btn-skip-video" class="btn btn-secondary btn-sm">SKIP ⏭</button>
-            </div>
-          </div>
-
-          <!-- Lecteur -->
-          <div class="video-wrapper">
-            <!-- Spinner chargement Cloudinary -->
-            <div id="video-loading-spinner" class="video-loading-spinner" style="display:none;">
-              <div class="spinner-ring"></div>
-              <p>Chargement vidéo…</p>
-            </div>
-
-            <!-- Lecteur natif (Cloudinary / Direct) -->
-            <video id="video-player-revelation"
-                   style="display:none;"
-                   playsinline
-                   preload="metadata"
-                   controlsList="nodownload">
-              Votre navigateur ne supporte pas la lecture de vidéos.
-            </video>
-
-            <!-- Lecteur YouTube IFrame -->
-            <div id="yt-player-revelation"
-                 class="yt-iframe-placeholder"
-                 style="display:none; width:100%; height:100%;"></div>
-
-            <!-- Overlay bouton PLAY (initial) -->
-            <div id="video-play-overlay" class="video-play-overlay">
-              <div class="play-btn-wrapper">
-                <button id="btn-start-video" class="btn-play">▶</button>
-              </div>
-              <p class="play-hint">Cliquez pour lancer la révélation</p>
-            </div>
-          </div>
-
-          <!-- Barre de progression custom (pour native video) -->
-          <div id="video-progress-bar" class="video-progress-bar" style="display:none;">
-            <span id="video-current-time" class="video-time">0:00</span>
-            <div class="video-progress-track">
-              <div id="video-progress-fill" class="video-progress-fill"></div>
-            </div>
-            <span id="video-duration" class="video-time">0:00</span>
-          </div>
-
-          <!-- Footer -->
-          <div class="video-footer">
-            <p>🍿 REGARDEZ ATTENTIVEMENT POUR LA REVELATION !</p>
-          </div>
-
-        </div>
+      <!-- Spinner chargement (centré sur fond noir) -->
+      <div id="video-loading-spinner" class="video-loading-spinner" style="display:none;">
+        <div class="spinner-ring"></div>
+        <p>Chargement vidéo…</p>
       </div>
+
+      <!-- Lecteur natif plein écran (Cloudinary direct / MP4) -->
+      <video id="video-player-revelation"
+             class="video-fullscreen-player"
+             style="display:none;"
+             playsinline
+             preload="metadata"
+             controlsList="nodownload">
+      </video>
+
+      <!-- Lecteur iframe plein écran (Cloudinary embed / YouTube) -->
+      <div id="yt-player-revelation"
+           class="video-fullscreen-iframe-container"
+           style="display:none;"></div>
+
+      <!-- Overlay bouton PLAY (initial, centré sur fond noir) -->
+      <div id="video-play-overlay" class="video-play-overlay-fullscreen">
+        <div class="fullscreen-play-title">
+          <span class="play-title-emoji">🚨</span>
+          <h2 class="play-title-text">RÉVÉLATION SPÉCIALE</h2>
+        </div>
+        <div class="play-btn-wrapper">
+          <button id="btn-start-video" class="btn-play-fullscreen">▶</button>
+        </div>
+        <p class="play-hint">Cliquez pour lancer la révélation</p>
+      </div>
+
+      <!-- HUD flottant : badge source + SKIP (toujours visible) -->
+      <div class="video-floating-hud">
+        <span id="video-source-badge" class="video-source-badge" style="display:none;"></span>
+        <button id="btn-skip-video" class="btn-skip-fullscreen">SKIP ⏭</button>
+      </div>
+
+      <!-- Barre de progression flottante (native video) -->
+      <div id="video-progress-bar" class="video-progress-bar-fullscreen" style="display:none;">
+        <span id="video-current-time" class="video-time">0:00</span>
+        <div class="video-progress-track">
+          <div id="video-progress-fill" class="video-progress-fill"></div>
+        </div>
+        <span id="video-duration" class="video-time">0:00</span>
+      </div>
+
     </section>
 
     <!-- SCREEN 3.5: THEME REVELATION -->
