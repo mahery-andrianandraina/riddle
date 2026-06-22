@@ -22,8 +22,8 @@ window.gameData = {
     // direct     → URL ou chemin local vers un fichier .mp4
     //   ex: "Revelation.mp4"
     // --------------------------------------------------------
-    revelationVideoType: "cloudinary",
-    revelationVideoId:   "https://res.cloudinary.com/VOTRE_CLOUD/video/upload/v1234567890/intro-equipe.mp4",
+    revelationVideoType: "cloudinary-embed",
+    revelationVideoId:   "https://player.cloudinary.com/embed/?cloud_name=djz4uow1p&public_id=Revelation_q0bhoc",
 
     // --------------------------------------------------------
     // VIDÉO DE FIN  (fond du leaderboard, en boucle muette)
