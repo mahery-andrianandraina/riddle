@@ -2,13 +2,9 @@
 // app.js  —  Super Mario Quiz : Qui Suis-Je ?
 // ==========================================================================
 
-const gameData     = window.gameData;
-const config       = gameData.settings;
-
-// Pool de questions mélangé à chaque partie
-let questionsList  = [];
-
-// Combien de questions par partie (null = toutes)
+const gameData    = window.gameData;
+const config      = gameData.settings;
+let   questionsList = [];
 const MAX_QUESTIONS = 8;
 
 // ==========================================================================
@@ -30,50 +26,59 @@ let ytPlayerRevelation = null;
 let ytPlayerEnding     = null;
 
 // ==========================================================================
-// ÉLÉMENTS DOM
+// DOM
 // ==========================================================================
 const DOM = {
   screens: {
-    welcome:          document.getElementById('screen-welcome'),
-    game:             document.getElementById('screen-game'),
-    video:            document.getElementById('screen-video'),
-    themeRevelation:  document.getElementById('screen-theme-revelation'),
-    results:          document.getElementById('screen-results')
+    welcome:         document.getElementById('screen-welcome'),
+    game:            document.getElementById('screen-game'),
+    video:           document.getElementById('screen-video'),
+    themeRevelation: document.getElementById('screen-theme-revelation'),
+    results:         document.getElementById('screen-results')
   },
-  welcomeForm:        document.getElementById('welcome-form'),
-  playerNameInput:    document.getElementById('player-name-input'),
-  gamePlayerName:     document.getElementById('game-player-name'),
-  gameScore:          document.getElementById('game-score'),
-  gameTimerSeconds:   document.getElementById('game-timer-seconds'),
-  timerProgress:      document.getElementById('timer-progress'),
-  gameProgressFill:   document.getElementById('game-progress-fill'),
-  gameQuestionNumber: document.getElementById('game-question-number'),
-  gameQuestionCategory: document.getElementById('game-question-category'),
-  riddleTitle:        document.getElementById('riddle-title'),
-  cluesContainer:     document.getElementById('clues-container'),
-  optionsButtonsContainer: document.getElementById('options-buttons-container'),
-  feedbackOverlay:    document.getElementById('feedback-overlay'),
-  feedbackIcon:       document.getElementById('feedback-icon'),
-  feedbackTitle:      document.getElementById('feedback-title'),
-  feedbackText:       document.getElementById('feedback-text'),
-  feedbackPoints:     document.getElementById('feedback-points'),
-  btnNextQuestion:    document.getElementById('btn-next-question'),
-  videoPlayerRevelation:        document.getElementById('video-player-revelation'),
-  ytPlayerRevelationPlaceholder: document.getElementById('yt-player-revelation'),
-  btnSkipVideo:       document.getElementById('btn-skip-video'),
-  videoPlayOverlay:   document.getElementById('video-play-overlay'),
-  btnStartVideo:      document.getElementById('btn-start-video'),
-  revealedThemeText:  document.getElementById('revealed-theme-text'),
-  btnGoToResults:     document.getElementById('btn-go-to-results'),
-  resultsPlayerName:  document.getElementById('results-player-name'),
-  resultsFinalScore:  document.getElementById('results-final-score'),
-  resultsRankTitle:   document.getElementById('results-rank-title'),
-  btnShareScore:      document.getElementById('btn-share-score'),
-  btnRestartGame:     document.getElementById('btn-restart-game'),
-  videoPlayerEnding:  document.getElementById('video-player-ending'),
+  welcomeForm:              document.getElementById('welcome-form'),
+  playerNameInput:          document.getElementById('player-name-input'),
+  gamePlayerName:           document.getElementById('game-player-name'),
+  gameScore:                document.getElementById('game-score'),
+  gameTimerSeconds:         document.getElementById('game-timer-seconds'),
+  timerProgress:            document.getElementById('timer-progress'),
+  gameProgressFill:         document.getElementById('game-progress-fill'),
+  gameQuestionNumber:       document.getElementById('game-question-number'),
+  gameQuestionCategory:     document.getElementById('game-question-category'),
+  riddleTitle:              document.getElementById('riddle-title'),
+  cluesContainer:           document.getElementById('clues-container'),
+  optionsButtonsContainer:  document.getElementById('options-buttons-container'),
+  feedbackOverlay:          document.getElementById('feedback-overlay'),
+  feedbackIcon:             document.getElementById('feedback-icon'),
+  feedbackTitle:            document.getElementById('feedback-title'),
+  feedbackText:             document.getElementById('feedback-text'),
+  feedbackPoints:           document.getElementById('feedback-points'),
+  btnNextQuestion:          document.getElementById('btn-next-question'),
+  // Vidéo révélation
+  videoPlayerRevelation:            document.getElementById('video-player-revelation'),
+  ytPlayerRevelationPlaceholder:    document.getElementById('yt-player-revelation'),
+  btnSkipVideo:                     document.getElementById('btn-skip-video'),
+  videoPlayOverlay:                 document.getElementById('video-play-overlay'),
+  btnStartVideo:                    document.getElementById('btn-start-video'),
+  videoLoadingSpinner:              document.getElementById('video-loading-spinner'),
+  videoSourceBadge:                 document.getElementById('video-source-badge'),
+  videoProgressBar:                 document.getElementById('video-progress-bar'),
+  videoProgressFill:                document.getElementById('video-progress-fill'),
+  videoCurrentTime:                 document.getElementById('video-current-time'),
+  videoDuration:                    document.getElementById('video-duration'),
+  // Révélation thème
+  revealedThemeText: document.getElementById('revealed-theme-text'),
+  btnGoToResults:    document.getElementById('btn-go-to-results'),
+  // Résultats
+  resultsPlayerName:       document.getElementById('results-player-name'),
+  resultsFinalScore:       document.getElementById('results-final-score'),
+  resultsRankTitle:        document.getElementById('results-rank-title'),
+  btnShareScore:           document.getElementById('btn-share-score'),
+  btnRestartGame:          document.getElementById('btn-restart-game'),
+  videoPlayerEnding:       document.getElementById('video-player-ending'),
   ytPlayerEndingPlaceholder: document.getElementById('yt-player-ending'),
-  leaderboardTbody:   document.getElementById('leaderboard-tbody'),
-  btnClearScores:     document.getElementById('btn-clear-scores')
+  leaderboardTbody:        document.getElementById('leaderboard-tbody'),
+  btnClearScores:          document.getElementById('btn-clear-scores')
 };
 
 // YouTube API
@@ -84,7 +89,7 @@ if (!window.YT) {
 }
 
 function ensureYTReady() {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (window.YT && window.YT.Player) { resolve(); return; }
     const id = setInterval(() => { if (window.YT && window.YT.Player) { clearInterval(id); resolve(); } }, 100);
     setTimeout(() => { clearInterval(id); resolve(); }, 4000);
@@ -101,6 +106,12 @@ function showScreen(key) {
 
 function formatScore(n) { return String(n).padStart(4, '0'); }
 
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 function getRankBadge(score, max) {
   const r = score / max;
   if (r >= 0.85) return "Détective d'Or 🕵️‍♂️ (Légendaire)";
@@ -113,20 +124,26 @@ function escapeHTML(str) {
   return str.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t));
 }
 
-// Badge de catégorie avec emoji
 function getCategoryLabel(cat) {
-  const map = {
+  return {
     "coworker":    "👤 Collègue",
     "tool":        "🔧 Outil",
     "office-life": "🏢 Vie de Bureau",
     "process":     "⚙️ Process Métier",
     "personality": "🧠 Personnalité"
-  };
-  return map[cat] || "❓ Divers";
+  }[cat] || "❓ Divers";
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 // ==========================================================================
-// CLASSEMENT
+// LEADERBOARD
 // ==========================================================================
 function loadLeaderboard(cb) {
   if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
@@ -145,7 +162,7 @@ function loadLocalLeaderboard(cb) {
 
 function sendScore(name, score, cb) {
   if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
-    fetch(config.googleSheetsUrl, { method:'POST', mode:'cors', body: JSON.stringify({ playerName:name, score }) })
+    fetch(config.googleSheetsUrl, { method: 'POST', mode: 'cors', body: JSON.stringify({ playerName: name, score }) })
       .then(() => loadLeaderboard(cb))
       .catch(() => saveScoreLocal(name, score, cb));
   } else { saveScoreLocal(name, score, cb); }
@@ -154,11 +171,10 @@ function sendScore(name, score, cb) {
 function saveScoreLocal(name, score, cb) {
   loadLocalLeaderboard(() => {
     state.leaderboard.push({
-      playerName: name,
-      score,
-      date: new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'short' })
+      playerName: name, score,
+      date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
     });
-    state.leaderboard.sort((a,b) => b.score - a.score);
+    state.leaderboard.sort((a, b) => b.score - a.score);
     state.leaderboard = state.leaderboard.slice(0, 10);
     localStorage.setItem('synapse_leaderboard', JSON.stringify(state.leaderboard));
     cb && cb(state.leaderboard);
@@ -193,9 +209,7 @@ function renderLeaderboardView() {
 // MOTEUR DE JEU
 // ==========================================================================
 function initGame() {
-  // Mélanger le pool à chaque nouvelle partie
   questionsList = gameData.getShuffledQuestions(MAX_QUESTIONS);
-
   state.score = 0;
   state.currentQuestionIndex = 0;
   DOM.gameScore.textContent = formatScore(0);
@@ -212,25 +226,18 @@ function startPlay() {
 }
 
 function loadQuestion(index) {
-  state.currentQuestionIndex    = index;
-  state.activeQuestion          = questionsList[index];
-  state.cluesShownCount         = 1;
-  state.timerSecondsRemaining   = config.timeLimitSeconds;
+  state.currentQuestionIndex  = index;
+  state.activeQuestion        = questionsList[index];
+  state.cluesShownCount       = 1;
+  state.timerSecondsRemaining = config.timeLimitSeconds;
 
-  // Barre de progression
-  DOM.gameProgressFill.style.width = `${(index / questionsList.length) * 100}%`;
-  DOM.gameQuestionNumber.textContent = `Question ${index + 1} / ${questionsList.length}`;
-
-  // Catégorie
+  DOM.gameProgressFill.style.width    = `${(index / questionsList.length) * 100}%`;
+  DOM.gameQuestionNumber.textContent  = `Question ${index + 1} / ${questionsList.length}`;
   DOM.gameQuestionCategory.textContent = getCategoryLabel(state.activeQuestion.category);
+  DOM.riddleTitle.textContent         = state.activeQuestion.title || "Qui suis-je ?";
+  DOM.cluesContainer.innerHTML        = '';
 
-  // Titre
-  DOM.riddleTitle.textContent = state.activeQuestion.title || "Qui suis-je ?";
-
-  // Vider les indices
-  DOM.cluesContainer.innerHTML = '';
-
-  // Générer les boutons de réponse (ordre aléatoire)
+  // Options (ordre aléatoire)
   const options = shuffleArray([...state.activeQuestion.options]);
   DOM.optionsButtonsContainer.innerHTML = '';
   options.forEach((opt, idx) => {
@@ -242,23 +249,11 @@ function loadQuestion(index) {
     DOM.optionsButtonsContainer.appendChild(btn);
   });
 
-  // Premier indice
   revealClue(0);
-
-  // Timer
   updateTimerVisual(config.timeLimitSeconds, config.timeLimitSeconds);
   DOM.timerProgress.classList.remove('warning');
   startTimer();
   startClueTriggers();
-}
-
-// Shuffle interne pour les options
-function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
 }
 
 function revealClue(idx) {
@@ -307,9 +302,8 @@ function stopQuestionIntervals() {
 }
 
 function calculateScore(timeLeft, cluesShown) {
-  const base   = config.pointsPerQuestion - (300 * (cluesShown - 1));
-  const factor = timeLeft / config.timeLimitSeconds;
-  return Math.max(100, Math.round(base * (0.6 + 0.4 * factor)));
+  const base = config.pointsPerQuestion - (300 * (cluesShown - 1));
+  return Math.max(100, Math.round(base * (0.6 + 0.4 * timeLeft / config.timeLimitSeconds)));
 }
 
 function handleAnswerSelect(selected, buttonEl) {
@@ -342,16 +336,16 @@ function handleAnswerSelect(selected, buttonEl) {
     DOM.feedbackOverlay.className = 'feedback-overlay';
     if (isCorrect) {
       DOM.feedbackOverlay.classList.add('correct');
-      DOM.feedbackIcon.textContent       = '✅';
-      DOM.feedbackTitle.textContent      = 'Bonne réponse !';
-      DOM.feedbackTitle.style.color      = 'var(--color-green)';
-      DOM.feedbackPoints.textContent     = `+${pts} pts`;
+      DOM.feedbackIcon.textContent   = '✅';
+      DOM.feedbackTitle.textContent  = 'Bonne réponse !';
+      DOM.feedbackTitle.style.color  = 'var(--color-green)';
+      DOM.feedbackPoints.textContent = `+${pts} pts`;
     } else {
       DOM.feedbackOverlay.classList.add('incorrect');
-      DOM.feedbackIcon.textContent       = '❌';
-      DOM.feedbackTitle.textContent      = 'Incorrect !';
-      DOM.feedbackTitle.style.color      = 'var(--color-red)';
-      DOM.feedbackPoints.textContent     = '0 pts';
+      DOM.feedbackIcon.textContent   = '❌';
+      DOM.feedbackTitle.textContent  = 'Incorrect !';
+      DOM.feedbackTitle.style.color  = 'var(--color-red)';
+      DOM.feedbackPoints.textContent = '0 pts';
     }
     DOM.feedbackText.innerHTML = `La bonne réponse était <strong>${state.activeQuestion.correctAnswer}</strong>.<br><br>💡 <em>${state.activeQuestion.funFact || ''}</em>`;
     DOM.feedbackOverlay.classList.add('active');
@@ -384,54 +378,161 @@ function handleNextQuestion() {
 }
 
 // ==========================================================================
-// VIDÉO RÉVÉLATION
+// VIDÉO D'INTRO / RÉVÉLATION  (Cloudinary | YouTube | Direct)
 // ==========================================================================
+
+// Détermine si le type vidéo utilise l'élément <video> natif
+function isNativeVideo(type) {
+  return type === "cloudinary" || type === "direct";
+}
+
+// Affiche le badge de source
+function showSourceBadge(type) {
+  if (!DOM.videoSourceBadge) return;
+  const labels = { cloudinary: "☁️ Cloudinary", youtube: "▶ YouTube", direct: "📁 Local" };
+  DOM.videoSourceBadge.textContent = labels[type] || type;
+  DOM.videoSourceBadge.style.display = "block";
+}
+
+// Met à jour la barre de progression custom (pour native video)
+function bindVideoProgress(videoEl) {
+  if (!DOM.videoProgressBar || !videoEl) return;
+
+  DOM.videoProgressBar.style.display = "flex";
+
+  videoEl.addEventListener('loadedmetadata', () => {
+    if (DOM.videoDuration) DOM.videoDuration.textContent = formatTime(videoEl.duration);
+  });
+
+  videoEl.addEventListener('timeupdate', () => {
+    if (!videoEl.duration) return;
+    const pct = (videoEl.currentTime / videoEl.duration) * 100;
+    if (DOM.videoProgressFill) DOM.videoProgressFill.style.width = `${pct}%`;
+    if (DOM.videoCurrentTime) DOM.videoCurrentTime.textContent = formatTime(videoEl.currentTime);
+  });
+
+  // Clic sur la barre pour scrubber
+  DOM.videoProgressBar.addEventListener('click', e => {
+    const rect = DOM.videoProgressBar.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    if (videoEl.duration) videoEl.currentTime = ratio * videoEl.duration;
+  });
+}
+
 function showRevelationVideo() {
   showScreen('video');
-  DOM.videoPlayOverlay.style.display = 'flex';
-  const vType = config.revelationVideoType;
-  const vId   = config.revelationVideoId;
 
+  const vType = config.revelationVideoType;  // "cloudinary" | "youtube" | "direct"
+  const vId   = config.revelationVideoId;    // URL complète (cloudinary/direct) ou ID (youtube)
+
+  // Reset UI
+  DOM.videoPlayOverlay.style.display = 'flex';
+  if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
+  if (DOM.videoProgressBar)   DOM.videoProgressBar.style.display = 'none';
+  if (DOM.videoProgressFill)  DOM.videoProgressFill.style.width  = '0%';
+  if (DOM.videoCurrentTime)   DOM.videoCurrentTime.textContent   = '0:00';
+  if (DOM.videoDuration)      DOM.videoDuration.textContent      = '0:00';
+
+  // Reset lecteurs précédents
   DOM.videoPlayerRevelation.style.display = 'none';
-  DOM.ytPlayerRevelationPlaceholder.style.display = 'none';
   DOM.videoPlayerRevelation.pause();
+  DOM.videoPlayerRevelation.removeAttribute('src');
+  DOM.ytPlayerRevelationPlaceholder.style.display = 'none';
   if (ytPlayerRevelation) { try { ytPlayerRevelation.destroy(); } catch(e){} ytPlayerRevelation = null; }
 
+  // Badge source
+  showSourceBadge(vType);
+
+  // Callback de fin → écran révélation thème
   const onEnded = () => {
     if (ytPlayerRevelation) { try { ytPlayerRevelation.destroy(); } catch(e){} ytPlayerRevelation = null; }
+    if (DOM.videoProgressBar) DOM.videoProgressBar.style.display = 'none';
     showThemeRevelationScreen();
   };
 
+  // ── Fonction de lecture ──────────────────────────────────────
   const play = () => {
     DOM.videoPlayOverlay.style.display = 'none';
-    if (vType === "youtube") {
+
+    // ── CLOUDINARY ──────────────────────────────────────────────
+    if (vType === "cloudinary") {
+      if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
+
+      const vid = DOM.videoPlayerRevelation;
+      vid.style.display = 'block';
+      vid.style.width   = '100%';
+      vid.style.height  = '100%';
+      vid.style.objectFit = 'cover';
+
+      // Cloudinary supporte HLS/mp4 — on utilise l'URL directe
+      vid.src = vId;
+      vid.load();
+
+      vid.addEventListener('canplay', () => {
+        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
+      }, { once: true });
+
+      vid.addEventListener('waiting', () => {
+        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
+      });
+
+      vid.addEventListener('playing', () => {
+        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
+      });
+
+      vid.play().catch(err => {
+        console.warn("Cloudinary play error:", err);
+        // Si autoplay bloqué → ré-afficher le bouton play
+        DOM.videoPlayOverlay.style.display = 'flex';
+        DOM.videoPlayOverlay.onclick = () => { DOM.videoPlayOverlay.style.display = 'none'; vid.play(); };
+      });
+
+      vid.onended = onEnded;
+      bindVideoProgress(vid);
+    }
+
+    // ── DIRECT (MP4 local ou URL directe) ───────────────────────
+    else if (vType === "direct") {
+      const vid = DOM.videoPlayerRevelation;
+      vid.style.display = 'block';
+      vid.src = vId;
+      vid.load();
+      vid.play().catch(() => onEnded());
+      vid.onended = onEnded;
+      bindVideoProgress(vid);
+    }
+
+    // ── YOUTUBE ─────────────────────────────────────────────────
+    else if (vType === "youtube") {
       ensureYTReady().then(() => {
         DOM.ytPlayerRevelationPlaceholder.style.display = 'block';
         ytPlayerRevelation = new YT.Player('yt-player-revelation', {
-          height:'100%', width:'100%', videoId: vId,
-          playerVars: { autoplay:1, controls:1, modestbranding:1, rel:0, playsinline:1 },
+          height: '100%', width: '100%', videoId: vId,
+          playerVars: { autoplay: 1, controls: 1, modestbranding: 1, rel: 0, playsinline: 1 },
           events: {
             onReady: e => e.target.playVideo(),
             onStateChange: e => { if (e.data === YT.PlayerState.ENDED) onEnded(); }
           }
         });
       });
-    } else {
-      DOM.videoPlayerRevelation.style.display = 'block';
-      DOM.videoPlayerRevelation.src = vId;
-      DOM.videoPlayerRevelation.load();
-      DOM.videoPlayerRevelation.play().catch(() => onEnded());
-      DOM.videoPlayerRevelation.onended = onEnded;
     }
   };
+  // ─────────────────────────────────────────────────────────────
 
-  DOM.videoPlayOverlay.onclick = play;
-  DOM.btnStartVideo.onclick    = e => { e.stopPropagation(); play(); };
-  DOM.btnSkipVideo.onclick     = () => { if (vType==="direct") DOM.videoPlayerRevelation.pause(); onEnded(); };
+  DOM.videoPlayOverlay.onclick  = play;
+  DOM.btnStartVideo.onclick     = e => { e.stopPropagation(); play(); };
+
+  DOM.btnSkipVideo.onclick = () => {
+    if (isNativeVideo(vType)) {
+      DOM.videoPlayerRevelation.pause();
+      DOM.videoPlayerRevelation.removeAttribute('src');
+    }
+    onEnded();
+  };
 }
 
 // ==========================================================================
-// ÉCRAN RÉVÉLATION THÈME
+// RÉVÉLATION THÈME
 // ==========================================================================
 function showThemeRevelationScreen() {
   DOM.revealedThemeText.textContent = config.themeToReveal || "🚀 SURPRISE 2026 🚀";
@@ -439,46 +540,54 @@ function showThemeRevelationScreen() {
 }
 
 // ==========================================================================
-// VIDÉO DE FIN
+// VIDÉO DE FIN (loop muette derrière le leaderboard)
 // ==========================================================================
 function startEndingVideo() {
-  const vType = config.endingVideoType, vId = config.endingVideoId;
+  const vType = config.endingVideoType;
+  const vId   = config.endingVideoId;
+
   DOM.videoPlayerEnding.style.display = 'none';
   DOM.ytPlayerEndingPlaceholder.style.display = 'none';
   DOM.videoPlayerEnding.pause();
   if (ytPlayerEnding) { try { ytPlayerEnding.destroy(); } catch(e){} ytPlayerEnding = null; }
+
   if (vType === "youtube") {
     ensureYTReady().then(() => {
       DOM.ytPlayerEndingPlaceholder.style.display = 'block';
       ytPlayerEnding = new YT.Player('yt-player-ending', {
-        height:'100%', width:'100%', videoId: vId,
+        height: '100%', width: '100%', videoId: vId,
         playerVars: { autoplay:1, controls:0, disablekb:1, fs:0, iv_load_policy:3, loop:1, playlist:vId, modestbranding:1, mute:1, rel:0, playsinline:1 },
         events: { onReady: e => { e.target.mute(); e.target.playVideo(); } }
       });
     });
   } else {
+    // cloudinary ou direct → même traitement (URL directe)
     DOM.videoPlayerEnding.style.display = 'block';
     DOM.videoPlayerEnding.src   = vId;
     DOM.videoPlayerEnding.muted = true;
     DOM.videoPlayerEnding.loop  = true;
     DOM.videoPlayerEnding.load();
-    DOM.videoPlayerEnding.play().catch(()=>{});
+    DOM.videoPlayerEnding.play().catch(() => {});
   }
 }
 
 function stopEndingVideo() {
-  if (config.endingVideoType === "direct") { DOM.videoPlayerEnding.pause(); }
-  else if (ytPlayerEnding) { try { ytPlayerEnding.destroy(); } catch(e){} ytPlayerEnding = null; }
+  if (isNativeVideo(config.endingVideoType)) {
+    DOM.videoPlayerEnding.pause();
+  } else if (ytPlayerEnding) {
+    try { ytPlayerEnding.destroy(); } catch(e){}
+    ytPlayerEnding = null;
+  }
 }
 
 // ==========================================================================
 // FIN DE JEU
 // ==========================================================================
 function endGame() {
-  DOM.resultsPlayerName.textContent  = state.playerName;
-  DOM.resultsFinalScore.textContent  = state.score;
+  DOM.resultsPlayerName.textContent = state.playerName;
+  DOM.resultsFinalScore.textContent = state.score;
   const max = questionsList.length * config.pointsPerQuestion;
-  DOM.resultsRankTitle.textContent   = getRankBadge(state.score, max);
+  DOM.resultsRankTitle.textContent  = getRankBadge(state.score, max);
   showScreen('results');
   startEndingVideo();
   sendScore(state.playerName, state.score, () => renderLeaderboardView());
