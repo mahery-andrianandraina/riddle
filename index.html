@@ -5,32 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Super Mario Quiz : Qui Suis-Je ?</title>
   <meta name="description" content="Un quiz compétitif de team-building en mode rétro 8-bit Super Mario. Devinez les collègues et gagnez des pièces !">
-  <!-- Google Fonts (Pixel 8-bit Font) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- CSS Link -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  
-  <!-- ================= MARIO BACKGROUND STAGE DECORATIONS ================= -->
-  <div class="mario-stage-decorations">
-    <div class="mario-ground"></div>
-    <div class="mario-pipe"></div>
-    <div class="mario-blocks">
-      <div class="mario-brick"></div>
-      <div class="mario-qblock">?</div>
-      <div class="mario-brick"></div>
-    </div>
-    <div class="mario-goomba"></div>
-    <div class="mario-cloud cloud-1"></div>
-    <div class="mario-cloud cloud-2"></div>
-  </div>
+
+  <!-- MARIO LIVE GAME BACKGROUND (canvas) -->
+  <canvas id="mario-bg-canvas"></canvas>
+  <div id="mario-bg-overlay"></div>
 
   <div class="app-container">
     
-    <!-- ================= SCREEN 1: WELCOME SCREEN (NES START SCREEN) ================= -->
+    <!-- SCREEN 1: WELCOME -->
     <section id="screen-welcome" class="screen active">
       <div class="glass-card welcome-card">
         <div class="logo-container">
@@ -42,7 +30,6 @@
         <p class="game-description">
           MARIO ! Devinez qui se cache derrière les indices le plus vite possible pour récolter un maximum de pièces !
         </p>
-        
         <form id="welcome-form" onsubmit="return false;">
           <div class="input-group">
             <label for="player-name-input">NOM DU JOUEUR</label>
@@ -56,9 +43,8 @@
       </div>
     </section>
 
-    <!-- ================= SCREEN 2: GAMEPLAY SCREEN (STAGE LEVEL) ================= -->
+    <!-- SCREEN 2: GAMEPLAY -->
     <section id="screen-game" class="screen">
-      <!-- Top Status Bar (Authentic NES HUD) -->
       <div class="game-header-nes">
         <div class="hud-col">
           <span class="hud-label">PLAYER</span>
@@ -84,7 +70,6 @@
         </div>
       </div>
 
-      <!-- Progress bar (Mario flag distance) -->
       <div class="progress-bar-container">
         <div id="game-progress-fill" class="progress-bar-fill" style="width: 14%;"></div>
       </div>
@@ -93,19 +78,13 @@
         <span id="game-question-category" class="category-badge">CATEGORIE</span>
       </div>
 
-      <!-- Main Riddles Area & Answers (Side-by-side on desktop) -->
       <div class="game-main-layout">
-        <!-- Left Column: Riddle Dialog Box -->
         <div class="riddle-container">
           <div class="glass-card riddle-card" id="riddle-card-element">
             <h2 id="riddle-title" class="riddle-title">QUI SUIS-JE ?</h2>
-            <div class="clues-list" id="clues-container">
-              <!-- Generated clues -->
-            </div>
+            <div class="clues-list" id="clues-container"></div>
           </div>
         </div>
-
-        <!-- Right Column: Options Buttons -->
         <div class="options-container" id="options-buttons-container">
           <button id="btn-option-0" class="btn btn-option">Option 1</button>
           <button id="btn-option-1" class="btn btn-option">Option 2</button>
@@ -114,7 +93,6 @@
         </div>
       </div>
       
-      <!-- Instant Feedback Overlay -->
       <div id="feedback-overlay" class="feedback-overlay">
         <div class="feedback-content glass-card">
           <span id="feedback-icon" class="feedback-icon">🌟</span>
@@ -126,35 +104,70 @@
       </div>
     </section>
 
-    <!-- ================= SCREEN 3: VIDEO INTERMISSION ================= -->
+    <!-- SCREEN 3: VIDEO D'INTRO (Cloudinary / YouTube / Direct) -->
     <section id="screen-video" class="screen">
       <div class="video-overlay-container">
         <div class="video-card glass-card">
+
+          <!-- Header -->
           <div class="video-header">
             <h3>🚨 SPECIAL REVELATION 🚨</h3>
-            <button id="btn-skip-video" class="btn btn-secondary btn-sm">SKIP</button>
-          </div>
-          <div class="video-wrapper">
-            <!-- Video tag for direct MP4 links -->
-            <video id="video-player-revelation" style="display:none;" playsinline preload="auto">
-              Votre navigateur ne supporte pas la lecture de vidéos.
-            </video>
-            <!-- Div for YouTube IFrame Player -->
-            <div id="yt-player-revelation" class="yt-iframe-placeholder" style="display:none; width:100%; height:100%;"></div>
-            
-            <div id="video-play-overlay" class="video-play-overlay">
-              <button id="btn-start-video" class="btn-play">▶</button>
-              <p>PLAY VIDEO</p>
+            <div class="video-header-right">
+              <span id="video-source-badge" class="video-source-badge" style="display:none;"></span>
+              <button id="btn-skip-video" class="btn btn-secondary btn-sm">SKIP ⏭</button>
             </div>
           </div>
-          <div class="video-footer">
-            <p>REGARDEZ ATTENTIVEMENT POUR LA REVELATION !</p>
+
+          <!-- Lecteur -->
+          <div class="video-wrapper">
+            <!-- Spinner chargement Cloudinary -->
+            <div id="video-loading-spinner" class="video-loading-spinner" style="display:none;">
+              <div class="spinner-ring"></div>
+              <p>Chargement vidéo…</p>
+            </div>
+
+            <!-- Lecteur natif (Cloudinary / Direct) -->
+            <video id="video-player-revelation"
+                   style="display:none;"
+                   playsinline
+                   preload="metadata"
+                   controlsList="nodownload">
+              Votre navigateur ne supporte pas la lecture de vidéos.
+            </video>
+
+            <!-- Lecteur YouTube IFrame -->
+            <div id="yt-player-revelation"
+                 class="yt-iframe-placeholder"
+                 style="display:none; width:100%; height:100%;"></div>
+
+            <!-- Overlay bouton PLAY (initial) -->
+            <div id="video-play-overlay" class="video-play-overlay">
+              <div class="play-btn-wrapper">
+                <button id="btn-start-video" class="btn-play">▶</button>
+              </div>
+              <p class="play-hint">Cliquez pour lancer la révélation</p>
+            </div>
           </div>
+
+          <!-- Barre de progression custom (pour native video) -->
+          <div id="video-progress-bar" class="video-progress-bar" style="display:none;">
+            <span id="video-current-time" class="video-time">0:00</span>
+            <div class="video-progress-track">
+              <div id="video-progress-fill" class="video-progress-fill"></div>
+            </div>
+            <span id="video-duration" class="video-time">0:00</span>
+          </div>
+
+          <!-- Footer -->
+          <div class="video-footer">
+            <p>🍿 REGARDEZ ATTENTIVEMENT POUR LA REVELATION !</p>
+          </div>
+
         </div>
       </div>
     </section>
 
-    <!-- ================= SCREEN 3.5: THEME REVELATION SCREEN (WORLD CLEAR SCREEN) ================= -->
+    <!-- SCREEN 3.5: THEME REVELATION -->
     <section id="screen-theme-revelation" class="screen">
       <div class="glass-card theme-revelation-card">
         <div class="logo-container">
@@ -163,15 +176,11 @@
         </div>
         <h2 class="theme-title-pre">STAGE CLEAR !</h2>
         <h1 class="theme-title-main">THEME REVELE</h1>
-        <p class="theme-description">
-          LE THEME DE LA PROCHAINE AVENTURE DE L'EQUIPE EST :
-        </p>
-        
+        <p class="theme-description">LE THEME DE LA PROCHAINE AVENTURE DE L'EQUIPE EST :</p>
         <div class="revealed-theme-container">
           <div class="revealed-theme-glow"></div>
           <span id="revealed-theme-text" class="revealed-theme-text">[THEME SECRET]</span>
         </div>
-        
         <button id="btn-go-to-results" class="btn btn-primary">
           <span>HIGH SCORES 🏆</span>
           <span class="btn-arrow">→</span>
@@ -179,15 +188,11 @@
       </div>
     </section>
 
-    <!-- ================= SCREEN 4: RESULTS & LEADERBOARD (NES GAME OVER) ================= -->
+    <!-- SCREEN 4: RESULTS & LEADERBOARD -->
     <section id="screen-results" class="screen">
-      <!-- Background Video container for Ending video -->
       <div class="ending-video-background">
-        <!-- Direct MP4 loop video -->
         <video id="video-player-ending" style="display:none;" loop muted playsinline preload="auto"></video>
-        <!-- YouTube loop video -->
         <div id="yt-player-ending" class="yt-iframe-placeholder" style="display:none; width:100%; height:100%; position:absolute; top:0; left:0; pointer-events:none;"></div>
-        
         <div class="video-dark-overlay"></div>
       </div>
 
@@ -196,39 +201,26 @@
           <div class="crown-icon">👑</div>
           <h2 class="results-title">STAGE COMPLETE !</h2>
           <p class="results-subtitle">BRAVO <span id="results-player-name" class="highlight-text">MARIO</span> !</p>
-          
           <div class="score-display">
             <span class="final-score-title">TOTAL SCORE</span>
             <span id="results-final-score" class="final-score-value">0000</span>
             <span id="results-rank-title" class="rank-badge">SUPER STAR ⭐</span>
           </div>
-
           <div class="results-actions">
-            <button id="btn-share-score" class="btn btn-secondary">
-              <span>📋 SHARE SCORE</span>
-            </button>
-            <button id="btn-restart-game" class="btn btn-primary">
-              <span>PLAY AGAIN</span>
-            </button>
+            <button id="btn-share-score" class="btn btn-secondary"><span>📋 SHARE SCORE</span></button>
+            <button id="btn-restart-game" class="btn btn-primary"><span>PLAY AGAIN</span></button>
           </div>
         </div>
-
-        <!-- Leaderboard -->
         <div class="glass-card leaderboard-card">
           <h3 class="leaderboard-title">🏆 HIGH SCORES</h3>
           <div class="table-wrapper">
             <table class="leaderboard-table">
               <thead>
                 <tr>
-                  <th>RANK</th>
-                  <th>NAME</th>
-                  <th>SCORE</th>
-                  <th>DATE</th>
+                  <th>RANK</th><th>NAME</th><th>SCORE</th><th>DATE</th>
                 </tr>
               </thead>
-              <tbody id="leaderboard-tbody">
-                <!-- Top ranks populated by JS -->
-              </tbody>
+              <tbody id="leaderboard-tbody"></tbody>
             </table>
           </div>
           <button id="btn-clear-scores" class="btn btn-danger-link">RESET ALL SCORES</button>
@@ -238,8 +230,9 @@
 
   </div>
 
-  <!-- Sequential Script Loading (Supports file:// protocol without CORS errors) -->
   <script src="game-data.js"></script>
   <script src="app.js"></script>
+  <!-- Mario live background — loaded last -->
+  <script src="mario-bg.js"></script>
 </body>
 </html>
