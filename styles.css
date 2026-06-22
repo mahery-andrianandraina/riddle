@@ -1,54 +1,43 @@
 /* ==========================================================================
-   DESIGN SYSTEM & VARIABLES (SUPER MARIO RETRO NES THEME)
+   DESIGN SYSTEM – SUPER MARIO RETRO NES THEME
    ========================================================================== */
 :root {
   --font-pixel: 'Press Start 2P', monospace, sans-serif;
   --font-body: 'Inter', sans-serif;
 
-  /* Retro NES Color Palette */
-  --bg-space: #5c94fc;              /* Classic Mario Sky Blue */
-  --bg-card: #000000;               /* Solid NES Dialog Box Black */
-  --bg-card-hover: #121212;
-  
-  --border-color: #ffffff;          /* Crisp NES White Border */
-  --border-color-hover: #fcb800;    /* Mario Yellow */
-  
+  --bg-space: #5c94fc;
+  --bg-card: rgba(0,0,0,0.88);
+  --bg-card-hover: rgba(10,10,10,0.92);
+
+  --border-color: #ffffff;
+  --border-color-hover: #fcb800;
+
   --text-primary: #ffffff;
-  --text-secondary: #fcd8a0;        /* Peach Skin Tone */
+  --text-secondary: #fcd8a0;
   --text-muted: #aaaaaa;
-  
-  /* Retro Accent Colors */
+
   --color-mario-red: #e52521;
   --color-luigi-green: #00a800;
   --color-coin-yellow: #f8b800;
   --color-brick-brown: #b84418;
   --color-sky-blue: #5c94fc;
-  
+
   --color-green: #00a800;
   --color-red: #e52521;
 
-  /* Retro Shadows & Pixel Layouts */
-  --glow-pixel: 0 0 0 4px #000000;
-  --glow-active: 0 0 15px rgba(252, 184, 0, 0.4);
-  --glass-shadow: 0 0 0 4px #000000, 8px 8px 0px rgba(0, 0, 0, 0.25);
-
-  /* Retro step animations */
-  --transition-fast: 0.15s steps(3, end);
-  --transition-normal: 0.3s steps(4, end);
+  --glass-shadow: 0 0 0 4px #000000, 8px 8px 0px rgba(0,0,0,0.35);
+  --transition-fast: 0.15s steps(3,end);
+  --transition-normal: 0.3s steps(4,end);
 }
 
 /* ==========================================================================
-   RESET & BASE STYLES (PREVENT BODY SCROLL)
+   RESET & BASE
    ========================================================================== */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
   height: 100%;
-  overflow: hidden; /* Lock scroll globally */
+  overflow: hidden;
 }
 
 body {
@@ -64,160 +53,43 @@ body {
 }
 
 /* ==========================================================================
-   MARIO STAGE BACKGROUND DECORATIONS (HTML BACKDROP)
+   MARIO CANVAS BACKGROUND
    ========================================================================== */
-.mario-stage-decorations {
+#mario-bg-canvas {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: -1;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+}
+
+/* Semi-transparent dark scrim so quiz UI stays readable */
+#mario-bg-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  /* Gradient: darker at center where cards appear, lighter at edges */
+  background: radial-gradient(
+    ellipse 70% 70% at 50% 50%,
+    rgba(0,0,0,0.45) 0%,
+    rgba(0,0,0,0.15) 100%
+  );
   pointer-events: none;
 }
 
-/* Brick Ground */
-.mario-ground {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background-color: #c84c0c;
-  border-top: 4px solid #000000;
-  /* Pixel brick pattern */
-  background-image: 
-    linear-gradient(90deg, #000000 4px, transparent 4px),
-    linear-gradient(180deg, #fcd8a0 4px, transparent 4px),
-    linear-gradient(90deg, #000000 4px, transparent 4px),
-    linear-gradient(180deg, #702000 4px, transparent 4px);
-  background-size: 40px 30px, 40px 30px, 40px 30px, 40px 30px;
-  background-position: 0 0, 0 0, 20px 15px, 20px 15px;
-}
-
-/* Green Warp Pipe */
-.mario-pipe {
-  position: absolute;
-  bottom: 60px;
-  left: 8%;
-  width: 68px;
-  height: 100px;
-  background: #00a800;
-  border: 4px solid #000000;
-  border-bottom: none;
-  box-shadow: inset -12px 0px 0px #007000;
-}
-
-.mario-pipe::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -8px;
-  width: 76px;
-  height: 28px;
-  background: #00a800;
-  border: 4px solid #000000;
-  box-shadow: inset -12px 0px 0px #007000;
-}
-
-/* Floating Bricks & Blinking Question Block */
-.mario-blocks {
-  position: absolute;
-  top: 25%;
-  right: 8%;
-  display: flex;
-  gap: 0px;
-}
-
-.mario-brick, .mario-qblock {
-  width: 36px;
-  height: 36px;
-  border: 4px solid #000000;
-  font-family: var(--font-pixel);
-  font-size: 14px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-}
-
-.mario-brick {
-  background: #c84c0c;
-  box-shadow: inset -3px -3px 0px #702000, inset 3px 3px 0px #fcd8a0;
-}
-
-.mario-qblock {
-  background: #fcb800;
-  color: #000000;
-  box-shadow: inset -3px -3px 0px #b86000, inset 3px 3px 0px #ffffff;
-  animation: qBlockBlink 1.2s infinite steps(2);
-}
-
-@keyframes qBlockBlink {
-  0%, 100% { background: #fcb800; color: #000000; }
-  50% { background: #d87000; color: #b86000; }
-}
-
-/* Walking Goomba Enemy */
-.mario-goomba {
-  position: absolute;
-  bottom: 60px;
-  width: 32px;
-  height: 32px;
-  background: #c84c0c;
-  border: 4px solid #000000;
-  border-radius: 4px;
-  box-shadow: inset -4px -4px 0px #702000;
-  animation: goombaWalk 25s infinite linear;
-}
-
-@keyframes goombaWalk {
-  0% { left: 105vw; }
-  100% { left: -50px; }
-}
-
-/* Classic clouds in background */
-.mario-cloud {
-  position: absolute;
-  background: #ffffff;
-  border: 4px solid #000000;
-  height: 40px;
-  border-radius: 20px;
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.1);
-}
-
-.mario-cloud::before, .mario-cloud::after {
-  content: "";
-  position: absolute;
-  background: #ffffff;
-  border: 4px solid #000000;
-  border-radius: 50%;
-}
-
-.cloud-1 {
-  top: 15%;
-  left: 20%;
-  width: 100px;
-}
-.cloud-1::before { width: 50px; height: 50px; top: -25px; left: 15px; border-bottom: none; }
-.cloud-1::after { width: 40px; height: 40px; top: -15px; right: 15px; border-bottom: none; }
-
-.cloud-2 {
-  top: 10%;
-  right: 25%;
-  width: 120px;
-}
-.cloud-2::before { width: 60px; height: 60px; top: -30px; left: 20px; border-bottom: none; }
-.cloud-2::after { width: 45px; height: 45px; top: -20px; right: 20px; border-bottom: none; }
-
-
 /* ==========================================================================
-   APP CONTAINER (EXPANDED TO MINIMIZE EMPTY MARGINS)
+   APP CONTAINER
    ========================================================================== */
 .app-container {
+  position: relative;
+  z-index: 2;          /* Above canvas & overlay */
   width: 100%;
-  max-width: 940px; /* Expanded from 860px to fill the screen */
+  max-width: 940px;
   height: 100vh;
   padding: 1.5rem;
   display: flex;
@@ -228,20 +100,21 @@ body {
 }
 
 /* ==========================================================================
-   GLASSMORPHISM CARD STYLING (CLASSIC NES DIALOG BOX)
+   GLASS CARD (NES dialog box, now with slight blur for contrast)
    ========================================================================== */
 .glass-card {
   background: var(--bg-card);
   border: 4px solid var(--border-color);
-  border-radius: 0px; /* Pixel sharp */
+  border-radius: 0px;
   padding: 1.5rem;
   box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   transition: all var(--transition-normal);
   width: 100%;
   position: relative;
 }
 
-/* Floating animation */
 .welcome-card, .riddle-card, .theme-revelation-card, .results-card, .leaderboard-card {
   animation: pixelFloat 6s infinite ease-in-out;
 }
@@ -252,7 +125,7 @@ body {
 }
 
 /* ==========================================================================
-   SCREENS NAVIGATION (SPA)
+   SCREENS
    ========================================================================== */
 .screen {
   display: none;
@@ -260,12 +133,10 @@ body {
   transform: translateY(10px);
   transition: opacity var(--transition-normal), transform var(--transition-normal);
   width: 100%;
-  max-width: 440px; /* Default narrow for login/theme screen */
+  max-width: 440px;
 }
 
-#screen-game, #screen-results {
-  max-width: 940px; /* Expanded wide on desktop to minimize margins */
-}
+#screen-game, #screen-results { max-width: 940px; }
 
 .screen.active {
   display: block;
@@ -274,7 +145,7 @@ body {
 }
 
 /* ==========================================================================
-   BUTTONS (NES RETRO PIXEL BUTTONS)
+   BUTTONS
    ========================================================================== */
 .btn {
   display: inline-flex;
@@ -299,13 +170,11 @@ body {
   color: #ffffff;
   box-shadow: inset -4px -4px 0px #901010, inset 4px 4px 0px #ff7070, 3px 3px 0px #000000;
 }
-
 .btn-primary:hover {
   transform: translateY(-2px);
   background: #ff3531;
   box-shadow: inset -4px -4px 0px #b02020, inset 4px 4px 0px #ff8080, 5px 5px 0px #000000;
 }
-
 .btn-primary:active {
   transform: translateY(0);
   box-shadow: inset -4px -4px 0px #901010, inset 4px 4px 0px #ff7070, 3px 3px 0px #000000;
@@ -317,7 +186,6 @@ body {
   color: var(--text-primary);
   box-shadow: inset -4px -4px 0px #222222, inset 4px 4px 0px #888888, 3px 3px 0px #000000;
 }
-
 .btn-secondary:hover {
   background: #777777;
   transform: translateY(-2px);
@@ -347,7 +215,7 @@ body {
 }
 
 /* ==========================================================================
-   SCREEN 1: WELCOME SCREEN (NES CART CARTRIDGE INTERFACE)
+   SCREEN 1: WELCOME
    ========================================================================== */
 .welcome-card {
   text-align: center;
@@ -369,26 +237,17 @@ body {
   position: relative;
   box-shadow: 4px 4px 0px #000000;
 }
-
-.logo-icon {
-  font-size: 2rem;
-  z-index: 2;
-}
+.logo-icon { font-size: 2rem; z-index: 2; }
 
 .pulse-ring {
   content: "";
   position: absolute;
-  top: -8px;
-  left: -8px;
-  right: -8px;
-  bottom: -8px;
-  border-radius: 0px;
+  top: -8px; left: -8px; right: -8px; bottom: -8px;
   border: 2px solid var(--color-coin-yellow);
   animation: pulse 2.5s infinite linear;
   z-index: 1;
   opacity: 0.5;
 }
-
 @keyframes pulse {
   0% { transform: scale(1); opacity: 0.5; }
   100% { transform: scale(1.2); opacity: 0; }
@@ -402,7 +261,6 @@ body {
   margin-bottom: 0.5rem;
   text-shadow: 3px 3px 0px #000000;
 }
-
 .game-subtitle {
   font-family: var(--font-pixel);
   font-size: 0.85rem;
@@ -411,7 +269,6 @@ body {
   margin-bottom: 1rem;
   text-shadow: 2px 2px 0px #000000;
 }
-
 .game-description {
   color: var(--text-secondary);
   font-size: 0.85rem;
@@ -419,16 +276,9 @@ body {
   margin-bottom: 2rem;
 }
 
-#welcome-form {
-  width: 100%;
-  max-width: 340px;
-}
+#welcome-form { width: 100%; max-width: 340px; }
 
-.input-group {
-  text-align: left;
-  margin-bottom: 1.25rem;
-}
-
+.input-group { text-align: left; margin-bottom: 1.25rem; }
 .input-group label {
   display: block;
   font-family: var(--font-pixel);
@@ -437,7 +287,6 @@ body {
   color: var(--text-muted);
   margin-bottom: 0.5rem;
 }
-
 .input-group input {
   width: 100%;
   background: #000000;
@@ -449,79 +298,45 @@ body {
   color: var(--text-primary);
   transition: all var(--transition-fast);
 }
-
-.input-group input:focus {
-  outline: none;
-  border-color: var(--color-coin-yellow);
-}
-
-#btn-start-game {
-  width: 100%;
-}
-
-.btn-arrow {
-  transition: transform var(--transition-fast);
-}
-
-#btn-start-game:hover .btn-arrow {
-  transform: translateX(4px);
-}
+.input-group input:focus { outline: none; border-color: var(--color-coin-yellow); }
+#btn-start-game { width: 100%; }
+.btn-arrow { transition: transform var(--transition-fast); }
+#btn-start-game:hover .btn-arrow { transform: translateX(4px); }
 
 /* ==========================================================================
-   SCREEN 2: GAMEPLAY SCREEN (NES HUD STATUS BAR)
+   SCREEN 2: GAMEPLAY HUD
    ========================================================================== */
 .game-header-nes {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 4 Clean columns matching NES layouts */
+  grid-template-columns: repeat(4, 1fr);
   width: 100%;
-  background: #000000;
+  background: rgba(0,0,0,0.9);
   border: 4px solid #ffffff;
   padding: 0.75rem 1.25rem;
   margin-bottom: 1rem;
   box-shadow: 4px 4px 0px #000000;
 }
-
 .hud-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   white-space: nowrap;
 }
-
 .hud-label {
   font-family: var(--font-pixel);
   font-size: 0.55rem;
   color: var(--text-muted);
   margin-bottom: 0.35rem;
 }
-
 .hud-val {
   font-family: var(--font-pixel);
   font-size: 0.8rem;
   color: var(--text-primary);
 }
-
-/* Timer details in HUD */
-.hud-time-container {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.timer-svg-hud {
-  width: 18px;
-  height: 18px;
-  transform: rotate(-90deg);
-}
-
-.timer-bg-hud {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 3;
-}
-
+.hud-time-container { display: flex; align-items: center; gap: 0.5rem; }
+.timer-svg-hud { width: 18px; height: 18px; transform: rotate(-90deg); }
+.timer-bg-hud { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
 .timer-bar-hud {
   fill: none;
   stroke: var(--color-coin-yellow);
@@ -529,29 +344,21 @@ body {
   stroke-linecap: square;
   transition: stroke-dasharray 0.1s linear, stroke var(--transition-fast);
 }
+.timer-bar-hud.warning { stroke: var(--color-red); }
 
-.timer-bar-hud.warning {
-  stroke: var(--color-red);
-}
-
-/* Flagpole Progress Bar */
 .progress-bar-container {
   width: 100%;
   height: 8px;
   background: #000000;
   border: 2px solid #ffffff;
-  border-radius: 0;
   margin-bottom: 0.5rem;
   overflow: hidden;
 }
-
 .progress-bar-fill {
   height: 100%;
   background: var(--color-luigi-green);
-  border-radius: 0;
   transition: width var(--transition-normal);
 }
-
 .progress-text-container {
   display: flex;
   justify-content: space-between;
@@ -561,19 +368,17 @@ body {
   color: var(--text-muted);
   margin-bottom: 1.25rem;
 }
-
 .category-badge {
   background: transparent;
   border: 2px solid var(--text-secondary);
   color: var(--text-secondary);
   padding: 0.15rem 0.4rem;
-  border-radius: 0;
   font-size: 0.5rem;
   text-transform: uppercase;
 }
 
 /* ==========================================================================
-   GAMEPLAY PLAY AREA (SPLIT SCREEN LAYOUT)
+   GAMEPLAY AREA
    ========================================================================== */
 .game-main-layout {
   display: grid;
@@ -582,19 +387,13 @@ body {
   align-items: stretch;
   width: 100%;
 }
-
-.riddle-container {
-  height: 100%;
-}
-
+.riddle-container { height: 100%; }
 .riddle-card {
-  margin-bottom: 0; /* Align side-by-side */
   height: 100%;
-  min-height: 250px; /* Taller card to minimize vertical empty space */
+  min-height: 250px;
   display: flex;
   flex-direction: column;
 }
-
 .riddle-title {
   font-family: var(--font-pixel);
   font-size: 0.72rem;
@@ -603,31 +402,23 @@ body {
   border-bottom: 2px solid var(--border-color);
   padding-bottom: 0.6rem;
 }
-
 .clues-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   flex-grow: 1;
 }
-
 .clue-item {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255,255,255,0.05);
   border: 2px solid var(--border-color);
-  border-radius: 0px;
   padding: 0.75rem 1.1rem;
-  font-size: 0.95rem; /* Highly readable font size */
+  font-size: 0.95rem;
   color: var(--text-secondary);
-  position: relative;
-  animation: slideInClue 0.4s steps(3, end) forwards;
+  animation: slideInClue 0.4s steps(3,end) forwards;
   opacity: 0;
   transform: translateY(10px);
 }
-
-.clue-item.active {
-  border-color: var(--color-coin-yellow);
-}
-
+.clue-item.active { border-color: var(--color-coin-yellow); }
 .clue-label {
   display: block;
   font-family: var(--font-pixel);
@@ -636,7 +427,6 @@ body {
   margin-bottom: 0.2rem;
 }
 
-/* Options stack (Question blocks next to riddle) */
 .options-container {
   display: flex;
   flex-direction: column;
@@ -644,7 +434,6 @@ body {
   justify-content: center;
   height: 100%;
 }
-
 .btn-option {
   background: var(--color-coin-yellow);
   color: #000000;
@@ -652,39 +441,29 @@ body {
   padding: 1rem 1.2rem;
   font-family: var(--font-pixel);
   font-size: 0.6rem;
-  border-radius: 0px;
   justify-content: flex-start;
   text-align: left;
-  transition: all var(--transition-fast);
   box-shadow: inset -4px -4px 0px #b86000, inset 4px 4px 0px #ffffff, 3px 3px 0px #000000;
   width: 100%;
 }
-
 .btn-option:hover {
   background: #f89800;
   transform: translateY(-2px);
   box-shadow: inset -4px -4px 0px #985000, inset 4px 4px 0px #ffffff, 4px 4px 0px #000000;
 }
 
-/* Instant Feedback Overlay */
+/* Feedback overlay */
 .feedback-overlay {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.95);
-  z-index: 100;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 200;
   justify-content: center;
   align-items: center;
   padding: 1.5rem;
 }
-
-.feedback-overlay.active {
-  display: flex;
-}
-
+.feedback-overlay.active { display: flex; }
 .feedback-content {
   width: 100%;
   max-width: 400px;
@@ -692,16 +471,13 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-radius: 0px;
-  animation: scaleUpFeedback 0.25s steps(3, end) forwards;
+  animation: scaleUpFeedback 0.25s steps(3,end) forwards;
 }
-
 #feedback-title {
   font-family: var(--font-pixel);
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
 }
-
 #feedback-text {
   color: var(--text-secondary);
   font-size: 0.85rem;
@@ -709,26 +485,15 @@ body {
   max-width: 280px;
   line-height: 1.6;
 }
-
 .feedback-points {
   font-family: var(--font-pixel);
   font-size: 1rem;
   color: var(--color-luigi-green);
   margin-bottom: 1.5rem;
 }
-
-.feedback-overlay.incorrect .feedback-points {
-  color: var(--color-mario-red);
-}
-
-#btn-next-question {
-  width: 100%;
-}
-
-.shake {
-  animation: shakeEffect 0.35s steps(4, end);
-}
-
+.feedback-overlay.incorrect .feedback-points { color: var(--color-mario-red); }
+#btn-next-question { width: 100%; }
+.shake { animation: shakeEffect 0.35s steps(4,end); }
 @keyframes shakeEffect {
   0%, 100% { transform: translateX(0); }
   25%, 75% { transform: translateX(-6px); }
@@ -736,7 +501,7 @@ body {
 }
 
 /* ==========================================================================
-   SCREEN 3: VIDEO INTERMISSION
+   SCREEN 3: VIDEO
    ========================================================================== */
 .video-card {
   width: 100%;
@@ -745,7 +510,6 @@ body {
   flex-direction: column;
   gap: 1rem;
 }
-
 .video-header {
   display: flex;
   justify-content: space-between;
@@ -753,32 +517,24 @@ body {
   border-bottom: 4px solid #ffffff;
   padding-bottom: 0.5rem;
 }
-
 .video-header h3 {
   font-family: var(--font-pixel);
   font-size: 0.65rem;
-  color: var(--text-primary);
   letter-spacing: 1px;
 }
-
 .video-wrapper {
   position: relative;
   width: 100%;
   max-height: 200px;
   aspect-ratio: 16/9;
   background: #000;
-  border-radius: 0px;
   overflow: hidden;
   border: 4px solid #ffffff;
 }
-
 .video-play-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -787,27 +543,17 @@ body {
   z-index: 10;
   cursor: pointer;
 }
-
 .btn-play {
-  width: 60px;
-  height: 60px;
-  border-radius: 0px;
+  width: 60px; height: 60px;
   background: var(--color-coin-yellow);
   border: 4px solid #000000;
-  font-size: 1.3rem;
-  color: #000000;
+  font-size: 1.3rem; color: #000000;
   cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: flex; justify-content: center; align-items: center;
   padding-left: 4px;
   box-shadow: inset -3px -3px 0px #b86000, 3px 3px 0px #000000;
 }
-
-.btn-play:hover {
-  transform: scale(1.05);
-}
-
+.btn-play:hover { transform: scale(1.05); }
 .video-play-overlay p {
   font-family: var(--font-pixel);
   font-size: 0.55rem;
@@ -815,7 +561,7 @@ body {
 }
 
 /* ==========================================================================
-   SCREEN 3.5: THEME REVELATION SCREEN (WORLD CLEAR SCREEN)
+   SCREEN 3.5: THEME REVELATION
    ========================================================================== */
 .theme-revelation-card {
   text-align: center;
@@ -823,7 +569,6 @@ body {
   flex-direction: column;
   align-items: center;
 }
-
 .theme-title-pre {
   font-family: var(--font-pixel);
   font-size: 0.65rem;
@@ -831,27 +576,23 @@ body {
   letter-spacing: 2px;
   margin-bottom: 0.5rem;
 }
-
 .theme-title-main {
   font-family: var(--font-pixel);
   font-size: 1.35rem;
   color: var(--text-primary);
   margin-bottom: 0.75rem;
 }
-
 .theme-description {
   color: var(--text-secondary);
   font-size: 0.85rem;
   margin-bottom: 2rem;
   max-width: 380px;
 }
-
 .revealed-theme-container {
   position: relative;
   background: #000000;
   border: 4px solid var(--color-coin-yellow);
   padding: 1.5rem 2rem;
-  border-radius: 0px;
   margin-bottom: 2rem;
   width: 100%;
   max-width: 420px;
@@ -861,23 +602,16 @@ body {
   overflow: hidden;
   box-shadow: 4px 4px 0px #000000;
 }
-
 .revealed-theme-glow {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 0px;
+  top: 0; left: 0; right: 0; bottom: 0;
   animation: themePulseGlow 4s infinite linear;
   pointer-events: none;
 }
-
 @keyframes themePulseGlow {
   0%, 100% { border: 4px solid var(--color-coin-yellow); }
   50% { border: 4px solid var(--color-mario-red); }
 }
-
 .revealed-theme-text {
   font-family: var(--font-pixel);
   font-size: 0.85rem;
@@ -885,14 +619,10 @@ body {
   text-shadow: 2px 2px 0px #000;
   letter-spacing: 0.5px;
 }
-
-#btn-go-to-results {
-  width: 100%;
-  max-width: 280px;
-}
+#btn-go-to-results { width: 100%; max-width: 280px; }
 
 /* ==========================================================================
-   SCREEN 4: RESULTS & LEADERBOARD (NES ARCADE HIGH SCORES)
+   SCREEN 4: RESULTS
    ========================================================================== */
 .results-content {
   display: grid;
@@ -901,7 +631,6 @@ body {
   align-items: stretch;
   width: 100%;
 }
-
 .results-card {
   text-align: center;
   display: flex;
@@ -910,33 +639,28 @@ body {
   justify-content: center;
   height: 100%;
 }
-
 .crown-icon {
   font-size: 2.5rem;
   margin-bottom: 0.25rem;
   animation: floatCrown 4s ease-in-out infinite;
 }
-
 .results-title {
   font-family: var(--font-pixel);
   font-size: 1.2rem;
   color: var(--color-coin-yellow);
   margin-bottom: 0.25rem;
 }
-
 .results-subtitle {
   font-family: var(--font-pixel);
   font-size: 0.6rem;
   color: var(--text-secondary);
   margin-bottom: 1.25rem;
 }
-
 .highlight-text {
   color: var(--text-primary);
   font-weight: bold;
   border-bottom: 4px solid var(--text-primary);
 }
-
 .score-display {
   display: flex;
   flex-direction: column;
@@ -949,14 +673,12 @@ body {
   max-width: 260px;
   box-shadow: inset -4px -4px 0px #333333;
 }
-
 .final-score-title {
   font-family: var(--font-pixel);
   font-size: 0.45rem;
   color: var(--text-muted);
   margin-bottom: 0.25rem;
 }
-
 .final-score-value {
   font-family: var(--font-pixel);
   font-size: 1.8rem;
@@ -964,19 +686,15 @@ body {
   line-height: 1.1;
   margin-bottom: 0.5rem;
 }
-
 .rank-badge {
   background: transparent;
   border: 2px solid var(--color-coin-yellow);
   color: var(--color-coin-yellow);
   padding: 0.25rem 0.6rem;
-  border-radius: 0px;
   font-family: var(--font-pixel);
   font-size: 0.45rem;
-  font-weight: normal;
   text-transform: uppercase;
 }
-
 .results-actions {
   display: grid;
   grid-template-columns: 1fr;
@@ -984,8 +702,6 @@ body {
   width: 100%;
   max-width: 260px;
 }
-
-/* Leaderboard Board */
 .leaderboard-card {
   padding: 1.5rem;
   display: flex;
@@ -993,39 +709,27 @@ body {
   justify-content: center;
   height: 100%;
 }
-
 .leaderboard-title {
   font-family: var(--font-pixel);
   font-size: 0.75rem;
   color: var(--color-coin-yellow);
   margin-bottom: 0.75rem;
-  text-transform: uppercase;
 }
-
 .table-wrapper {
   max-height: 200px;
   overflow-y: auto;
   background: #000000;
   border: 4px solid #ffffff;
 }
-
-.table-wrapper::-webkit-scrollbar {
-  width: 6px;
-}
-.table-wrapper::-webkit-scrollbar-track {
-  background: transparent;
-}
-.table-wrapper::-webkit-scrollbar-thumb {
-  background: #ffffff;
-}
-
+.table-wrapper::-webkit-scrollbar { width: 6px; }
+.table-wrapper::-webkit-scrollbar-track { background: transparent; }
+.table-wrapper::-webkit-scrollbar-thumb { background: #ffffff; }
 .leaderboard-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.75rem;
 }
-
 .leaderboard-table th {
   font-family: var(--font-pixel);
   color: var(--text-muted);
@@ -1039,126 +743,229 @@ body {
   background: #000000;
   z-index: 10;
 }
-
 .leaderboard-table td {
   padding: 0.6rem 0.8rem;
-  border-bottom: 2px dashed rgba(255, 255, 255, 0.1);
+  border-bottom: 2px dashed rgba(255,255,255,0.1);
   color: var(--text-secondary);
   font-family: var(--font-pixel);
   font-size: 0.45rem;
 }
-
-/* Medals */
 .leaderboard-table tbody tr:nth-child(1) td:first-child { color: var(--color-coin-yellow); }
 .leaderboard-table tbody tr:nth-child(2) td:first-child { color: #cbd5e1; }
 .leaderboard-table tbody tr:nth-child(3) td:first-child { color: #b84418; }
 
-/* YouTube overrides */
-.yt-iframe-placeholder iframe {
-  border: none;
-  border-radius: 8px;
+/* Ending video background */
+.ending-video-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
 }
-#yt-player-ending iframe {
-  border-radius: 0;
-  transform: scale(1.3);
+.video-dark-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 1;
+}
+.results-content { position: relative; z-index: 2; }
+
+.yt-iframe-placeholder iframe { border: none; }
+#yt-player-ending iframe { transform: scale(1.3); }
+
+/* ==========================================================================
+   KEYFRAMES
+   ========================================================================== */
+@keyframes slideInClue {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleUpFeedback {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes floatCrown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 /* ==========================================================================
-   RESPONSIVENESS & MOBILE OVERFLOW CONTROLS
+   RESPONSIVE
    ========================================================================== */
 @media (max-width: 680px) {
-  /* Hide heavy animations / backgrounds on mobile to maintain cleanliness */
-  .mario-pipe, .mario-blocks, .mario-goomba, .mario-cloud {
-    display: none;
-  }
-  
-  .game-main-layout {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
+  .game-main-layout { grid-template-columns: 1fr; gap: 1rem; }
   .options-container {
-    grid-template-columns: repeat(2, 1fr);
     display: grid;
+    grid-template-columns: repeat(2, 1fr);
     height: auto;
     gap: 0.5rem;
   }
-
-  .btn-option {
-    padding: 0.7rem 0.9rem;
-    font-size: 0.5rem;
-  }
-
-  .results-content {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    max-height: 80vh;
-    overflow-y: auto;
-  }
-
-  .results-card, .leaderboard-card {
-    padding: 1rem;
-  }
-  
-  .score-display {
-    margin-bottom: 0.75rem;
-    padding: 0.6rem 1.2rem;
-  }
-  
-  .final-score-value {
-    font-size: 1.5rem;
-  }
-
-  .results-actions {
-    grid-template-columns: 1fr 1fr;
-    max-width: 100%;
-  }
-
-  .table-wrapper {
-    max-height: 120px;
-  }
+  .btn-option { padding: 0.7rem 0.9rem; font-size: 0.5rem; }
+  .results-content { grid-template-columns: 1fr; gap: 1rem; max-height: 80vh; overflow-y: auto; }
+  .results-card, .leaderboard-card { padding: 1rem; }
+  .score-display { margin-bottom: 0.75rem; padding: 0.6rem 1.2rem; }
+  .final-score-value { font-size: 1.5rem; }
+  .results-actions { grid-template-columns: 1fr 1fr; max-width: 100%; }
+  .table-wrapper { max-height: 120px; }
 }
-
 @media (max-width: 580px) {
-  .app-container {
-    padding: 0.5rem;
-  }
-  
-  .glass-card {
-    padding: 1rem;
-  }
-
-  .game-title {
-    font-size: 1.2rem;
-  }
-
-  .theme-title-main {
-    font-size: 1.1rem;
-  }
-
-  .revealed-theme-text {
-    font-size: 0.75rem;
-  }
-  
-  .results-actions {
-    grid-template-columns: 1fr;
-  }
+  .app-container { padding: 0.5rem; }
+  .glass-card { padding: 1rem; }
+  .game-title { font-size: 1.2rem; }
+  .theme-title-main { font-size: 1.1rem; }
+  .revealed-theme-text { font-size: 0.75rem; }
+  .results-actions { grid-template-columns: 1fr; }
 }
-
 @media (max-width: 480px) {
-  .options-container {
-    grid-template-columns: 1fr;
+  .options-container { grid-template-columns: 1fr; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  #mario-bg-canvas { display: none; }
+  #mario-bg-overlay { background: rgba(5, 10, 50, 0.9); }
+  .welcome-card, .riddle-card, .theme-revelation-card, .results-card, .leaderboard-card {
+    animation: none;
   }
 }
 
-/* Keyframe Animations */
-@keyframes slideInClue {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* ==========================================================================
+   VIDÉO CLOUDINARY / ENHANCED VIDEO PLAYER
+   ========================================================================== */
+
+/* Header droit : badge + skip */
+.video-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Badge source (Cloudinary / YouTube / Local) */
+.video-source-badge {
+  font-family: var(--font-pixel);
+  font-size: 0.45rem;
+  background: #1a1a2e;
+  border: 2px solid var(--color-coin-yellow);
+  color: var(--color-coin-yellow);
+  padding: 0.2rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* Spinner de chargement Cloudinary */
+.video-loading-spinner {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  z-index: 20;
+}
+
+.video-loading-spinner p {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  color: var(--color-coin-yellow);
+  animation: textBlink 1s steps(2) infinite;
+}
+
+@keyframes textBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* Anneau rotatif NES style */
+.spinner-ring {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(255,255,255,0.1);
+  border-top-color: var(--color-coin-yellow);
+  border-right-color: var(--color-mario-red);
+  animation: spinRing 0.8s linear infinite;
+}
+
+@keyframes spinRing {
+  to { transform: rotate(360deg); }
+}
+
+/* Bouton play amélioré */
+.play-btn-wrapper {
+  position: relative;
+}
+
+.play-btn-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 3px solid var(--color-coin-yellow);
+  opacity: 0;
+  animation: playRipple 2s infinite;
+}
+
+@keyframes playRipple {
+  0%   { transform: scale(0.9); opacity: 0.7; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.play-hint {
+  font-family: var(--font-pixel);
+  font-size: 0.48rem !important;
+  color: var(--text-muted) !important;
+  animation: textBlink 2s steps(2) infinite;
+}
+
+/* Barre de progression vidéo custom */
+.video-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.2rem 0;
+  width: 100%;
+}
+
+.video-time {
+  font-family: var(--font-pixel);
+  font-size: 0.45rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 28px;
+}
+
+.video-progress-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.2);
+  cursor: pointer;
+  position: relative;
+}
+
+.video-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--color-mario-red);
+  transition: width 0.25s linear;
+  position: relative;
+}
+
+.video-progress-fill::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--color-coin-yellow);
+  border: 2px solid #000;
+}
+
+/* Footer vidéo */
+.video-footer p {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  text-align: center;
+  animation: textBlink 3s steps(2) infinite;
 }
