@@ -501,65 +501,168 @@ body {
 }
 
 /* ==========================================================================
-   SCREEN 3: VIDEO
+   SCREEN 3: VIDEO — PLEIN ÉCRAN
    ========================================================================== */
-.video-card {
-  width: 100%;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+
+/* L'écran vidéo prend tout l'espace disponible, fond noir */
+.screen-video-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: #000000;
+  display: none;
+  padding: 0 !important;
+  z-index: 50;
 }
-.video-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 4px solid #ffffff;
-  padding-bottom: 0.5rem;
+.screen-video-fullscreen.active {
+  display: block !important;
 }
-.video-header h3 {
-  font-family: var(--font-pixel);
-  font-size: 0.65rem;
-  letter-spacing: 1px;
-}
-.video-wrapper {
-  position: relative;
-  width: 100%;
-  max-height: 200px;
-  aspect-ratio: 16/9;
-  background: #000;
-  overflow: hidden;
-  border: 4px solid #ffffff;
-}
-.video-play-overlay {
+
+/* Vidéo native plein écran */
+.video-fullscreen-player {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.8);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  z-index: 1;
+}
+
+/* Iframe plein écran (Cloudinary embed / YouTube) */
+.video-fullscreen-iframe-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.video-fullscreen-iframe-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Overlay de lancement (fond noir + bouton play centré) */
+.video-play-overlay-fullscreen {
+  position: absolute;
+  inset: 0;
+  background: #000000;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1.5rem;
   z-index: 10;
   cursor: pointer;
 }
-.btn-play {
-  width: 60px; height: 60px;
-  background: var(--color-coin-yellow);
-  border: 4px solid #000000;
-  font-size: 1.3rem; color: #000000;
-  cursor: pointer;
-  display: flex; justify-content: center; align-items: center;
-  padding-left: 4px;
-  box-shadow: inset -3px -3px 0px #b86000, 3px 3px 0px #000000;
+
+.fullscreen-play-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
-.btn-play:hover { transform: scale(1.05); }
-.video-play-overlay p {
+.play-title-emoji {
+  font-size: 2.5rem;
+  animation: textBlink 1.5s steps(2) infinite;
+}
+.play-title-text {
   font-family: var(--font-pixel);
-  font-size: 0.55rem;
-  color: var(--text-secondary);
+  font-size: 1rem;
+  color: var(--color-coin-yellow);
+  text-shadow: 3px 3px 0 #000;
+  letter-spacing: 2px;
 }
 
+/* Gros bouton play */
+.btn-play-fullscreen {
+  width: 90px;
+  height: 90px;
+  background: var(--color-coin-yellow);
+  border: 5px solid #000000;
+  font-size: 2.2rem;
+  color: #000000;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-left: 6px;
+  box-shadow: inset -5px -5px 0px #b86000, inset 5px 5px 0px #fff9cc, 5px 5px 0px #000;
+  transition: transform 0.1s;
+}
+.btn-play-fullscreen:hover { transform: scale(1.06); }
+.btn-play-fullscreen:active { transform: scale(0.97); }
+
+.play-hint {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem !important;
+  color: var(--text-muted) !important;
+  animation: textBlink 2.5s steps(2) infinite;
+}
+
+/* HUD flottant (badge + SKIP) en haut à droite */
+.video-floating-hud {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  z-index: 20;
+}
+
+.btn-skip-fullscreen {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  background: rgba(0,0,0,0.75);
+  color: var(--text-muted);
+  border: 2px solid rgba(255,255,255,0.3);
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  backdrop-filter: blur(4px);
+}
+.btn-skip-fullscreen:hover {
+  background: rgba(229,37,33,0.85);
+  color: #fff;
+  border-color: var(--color-mario-red);
+}
+
+/* Barre de progression flottante (bas de l'écran) */
+.video-progress-bar-fullscreen {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 10px 16px 14px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  z-index: 20;
+}
+.video-progress-bar-fullscreen .video-progress-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  cursor: pointer;
+}
+.video-progress-bar-fullscreen .video-progress-fill {
+  height: 100%;
+  background: var(--color-mario-red);
+  transition: width 0.25s linear;
+}
+.video-progress-bar-fullscreen .video-time {
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  color: rgba(255,255,255,0.7);
+  min-width: 28px;
+}
 /* ==========================================================================
    SCREEN 3.5: THEME REVELATION
    ========================================================================== */
@@ -968,4 +1071,10 @@ body {
   color: var(--text-muted);
   text-align: center;
   animation: textBlink 3s steps(2) infinite;
+}
+
+/* Auto-hide HUD & progress bar (JS ajoute/retire opacity) */
+.video-floating-hud,
+.video-progress-bar-fullscreen {
+  transition: opacity 0.4s ease;
 }
