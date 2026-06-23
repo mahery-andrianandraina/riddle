@@ -473,7 +473,7 @@ function showRevelationVideo() {
 
       placeholder.appendChild(iframe);
 
-      // Attendre le postMessage Cloudinary "ended" (fin réelle de la vidéo)
+      // Déclencher à la fin réelle (25s) + postMessage comme backup
       let triggered = false;
       const triggerTheme = () => {
         if (triggered) return;
@@ -483,12 +483,17 @@ function showRevelationVideo() {
         onEnded();
       };
 
+      // Fallback fiable : durée réelle de la vidéo = 25s
+      const endTimer = setTimeout(triggerTheme, 25 * 1000);
+
+      // Bonus : postMessage Cloudinary si disponible (annule le timer)
       window.addEventListener('message', function onCldMsg(e) {
         if (!e.data) return;
         try {
           const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
           if (msg.event === 'ended' || msg.type === 'ended' ||
               (msg.info && msg.info.type === 'ended')) {
+            clearTimeout(endTimer);
             window.removeEventListener('message', onCldMsg);
             triggerTheme();
           }
