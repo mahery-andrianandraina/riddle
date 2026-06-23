@@ -46,12 +46,12 @@ window.gameData = {
       title: "Qui suis-je ? (L'outil du commercial)",
       clues: [
         "Je suis utilisé chaque jour par l'équipe commerciale pour gérer les commandes clients.",
-        "Grâce à moi, vous pouvez générer des PO (Purchase Orders) en quelques clics.",
+        "Grâce à moi, vous pouvez générer des PO en quelques clics.",
         "Mon nom se compose de 3 lettres et je suis au cœur de toute la gestion commerciale."
       ],
       options: ["PLC", "CRP", "ERP", "SAP"],
       correctAnswer: "CRP",
-      funFact: "CRP (Commercial Resource Planning) relie commandes, stocks et PO pour toute l'équipe commerciale."
+      funFact: "CRP relie commandes, stocks et PO pour toute l'équipe commerciale."
     },
     {
       id: "tool_02",
@@ -77,7 +77,7 @@ window.gameData = {
       ],
       options: ["SO", "PO", "DO", "PR"],
       correctAnswer: "PO",
-      funFact: "Le PO (Purchase Order) est le déclencheur officiel d'une commande fournisseur dans CRP."
+      funFact: "Le PO est le déclencheur officiel d'une commande fournisseur dans CRP."
     },
     {
       id: "tool_04",
@@ -88,7 +88,7 @@ window.gameData = {
         "Je suis l'autre outil maison, complémentaire au CRP.",
         "Je gère les matières, les couleurs, les swatches — tout ce qui touche au tissu."
       ],
-      options: ["CRP", "Excel", "PLC", "Slack"],
+      options: ["CRP", "BAMBOO ROSE", "PLC", "Teams"],
       correctAnswer: "PLC",
       funFact: "CRP et PLC sont deux outils complémentaires : CRP pour le commercial, PLC pour le développement tissu."
     },
