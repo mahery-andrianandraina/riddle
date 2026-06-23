@@ -402,28 +402,12 @@ function showSourceBadge(type) {
 }
 
 // Met à jour la barre de progression custom (pour native video)
-// Durée (secondes) après laquelle le thème s'affiche automatiquement
-const THEME_TRIGGER_SECONDS = 23;
-
 function bindVideoTrigger(videoEl, onEnded) {
   if (!videoEl) return;
-
-  // Bloquer clic droit (pas de "Save video as…")
+  // Bloquer clic droit
   videoEl.addEventListener('contextmenu', e => e.preventDefault());
-
-  // Déclencher le thème à THEME_TRIGGER_SECONDS
-  let triggered = false;
-  videoEl.addEventListener('timeupdate', () => {
-    if (!triggered && videoEl.currentTime >= THEME_TRIGGER_SECONDS) {
-      triggered = true;
-      onEnded();
-    }
-  });
-
-  // Fallback : si la vidéo se termine avant 23s
-  videoEl.addEventListener('ended', () => {
-    if (!triggered) { triggered = true; onEnded(); }
-  });
+  // Déclencher le thème à la vraie fin de la vidéo
+  videoEl.addEventListener('ended', onEnded, { once: true });
 }
 
 function showRevelationVideo() {
@@ -467,7 +451,7 @@ function showRevelationVideo() {
       placeholder.style.display = 'block';
       placeholder.innerHTML = '';
 
-      // Pas de controls dans l'URL embed
+      // Pas de controls, autoplay, attend la vraie fin
       const embedUrl = vId
         + (vId.includes('?') ? '&' : '?')
         + 'autoplay=true&controls=false&muted=false&loop=false&playsinline=true';
@@ -479,7 +463,7 @@ function showRevelationVideo() {
       iframe.style.border    = 'none';
       iframe.style.display   = 'block';
       iframe.allow           = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
-      iframe.allowFullscreen = false; // pas de fullscreen natif non plus
+      iframe.allowFullscreen = false;
 
       // Spinner pendant chargement
       if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
@@ -489,7 +473,7 @@ function showRevelationVideo() {
 
       placeholder.appendChild(iframe);
 
-      // Déclencher le thème à THEME_TRIGGER_SECONDS (iframe non-monitorable autrement)
+      // Attendre le postMessage Cloudinary "ended" (fin réelle de la vidéo)
       let triggered = false;
       const triggerTheme = () => {
         if (triggered) return;
@@ -499,15 +483,12 @@ function showRevelationVideo() {
         onEnded();
       };
 
-      const timer = setTimeout(triggerTheme, THEME_TRIGGER_SECONDS * 1000);
-
-      // Écouter aussi postMessage Cloudinary au cas où la vidéo finirait avant
       window.addEventListener('message', function onCldMsg(e) {
         if (!e.data) return;
         try {
           const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-          if (msg.event === 'ended' || msg.type === 'ended') {
-            clearTimeout(timer);
+          if (msg.event === 'ended' || msg.type === 'ended' ||
+              (msg.info && msg.info.type === 'ended')) {
             window.removeEventListener('message', onCldMsg);
             triggerTheme();
           }
@@ -578,7 +559,7 @@ function showRevelationVideo() {
   DOM.videoPlayOverlay.onclick = play;
   if (DOM.btnStartVideo) DOM.btnStartVideo.onclick = e => { e.stopPropagation(); play(); };
 
-  // Pas de bouton skip — la transition se fait automatiquement à THEME_TRIGGER_SECONDS
+  // Pas de bouton skip — le thème s'affiche automatiquement à la fin de la vidéo
 }
 
 // ==========================================================================
