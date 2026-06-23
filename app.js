@@ -402,46 +402,28 @@ function showSourceBadge(type) {
 }
 
 // Met à jour la barre de progression custom (pour native video)
-function bindVideoProgress(videoEl) {
-  if (!DOM.videoProgressBar || !videoEl) return;
+// Durée (secondes) après laquelle le thème s'affiche automatiquement
+const THEME_TRIGGER_SECONDS = 23;
 
-  DOM.videoProgressBar.style.display = "flex";
+function bindVideoTrigger(videoEl, onEnded) {
+  if (!videoEl) return;
 
-  // Show/hide HUD on mouse move (auto-hide after 3s)
-  let hudTimer;
-  const hud = document.querySelector('.video-floating-hud');
-  const showHUD = () => {
-    if (hud) hud.style.opacity = '1';
-    DOM.videoProgressBar.style.opacity = '1';
-    clearTimeout(hudTimer);
-    hudTimer = setTimeout(() => {
-      if (hud) hud.style.opacity = '0';
-      DOM.videoProgressBar.style.opacity = '0';
-    }, 3000);
-  };
-  document.getElementById('screen-video').addEventListener('mousemove', showHUD);
-  document.getElementById('screen-video').addEventListener('touchstart', showHUD);
+  // Bloquer clic droit (pas de "Save video as…")
+  videoEl.addEventListener('contextmenu', e => e.preventDefault());
 
-  videoEl.addEventListener('loadedmetadata', () => {
-    if (DOM.videoDuration) DOM.videoDuration.textContent = formatTime(videoEl.duration);
-  });
-
+  // Déclencher le thème à THEME_TRIGGER_SECONDS
+  let triggered = false;
   videoEl.addEventListener('timeupdate', () => {
-    if (!videoEl.duration) return;
-    const pct = (videoEl.currentTime / videoEl.duration) * 100;
-    if (DOM.videoProgressFill) DOM.videoProgressFill.style.width = `${pct}%`;
-    if (DOM.videoCurrentTime) DOM.videoCurrentTime.textContent = formatTime(videoEl.currentTime);
+    if (!triggered && videoEl.currentTime >= THEME_TRIGGER_SECONDS) {
+      triggered = true;
+      onEnded();
+    }
   });
 
-  // Scrub on click
-  const track = DOM.videoProgressBar.querySelector('.video-progress-track');
-  if (track) {
-    track.addEventListener('click', e => {
-      const rect = track.getBoundingClientRect();
-      const ratio = (e.clientX - rect.left) / rect.width;
-      if (videoEl.duration) videoEl.currentTime = ratio * videoEl.duration;
-    });
-  }
+  // Fallback : si la vidéo se termine avant 23s
+  videoEl.addEventListener('ended', () => {
+    if (!triggered) { triggered = true; onEnded(); }
+  });
 }
 
 function showRevelationVideo() {
@@ -481,15 +463,14 @@ function showRevelationVideo() {
 
     // ── CLOUDINARY EMBED (iframe player) ───────────────────────
     if (vType === "cloudinary-embed") {
-      // Créer un iframe Cloudinary Player
       const placeholder = DOM.ytPlayerRevelationPlaceholder;
       placeholder.style.display = 'block';
       placeholder.innerHTML = '';
 
-      // Paramètres embed : autoplay, controls, end-screen vers onEnded
+      // Pas de controls dans l'URL embed
       const embedUrl = vId
         + (vId.includes('?') ? '&' : '?')
-        + 'autoplay=true&controls=true&muted=false&loop=false&playsinline=true';
+        + 'autoplay=true&controls=false&muted=false&loop=false&playsinline=true';
 
       const iframe = document.createElement('iframe');
       iframe.src             = embedUrl;
@@ -498,9 +479,9 @@ function showRevelationVideo() {
       iframe.style.border    = 'none';
       iframe.style.display   = 'block';
       iframe.allow           = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
-      iframe.allowFullscreen = true;
+      iframe.allowFullscreen = false; // pas de fullscreen natif non plus
 
-      // Spinner pendant le chargement de l'iframe
+      // Spinner pendant chargement
       if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
       iframe.addEventListener('load', () => {
         if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
@@ -508,26 +489,30 @@ function showRevelationVideo() {
 
       placeholder.appendChild(iframe);
 
-      // Cloudinary Player embed envoie postMessage quand la vidéo se termine
-      window.addEventListener('message', function onCldMsg(e) {
-        if (!e.data) return;
-        try {
-          const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-          // Cloudinary envoie { event: "ended" } ou { type: "ended" }
-          if (msg.event === 'ended' || msg.type === 'ended' ||
-              (msg.info && msg.info.type === 'ended')) {
-            window.removeEventListener('message', onCldMsg);
-            onEnded();
-          }
-        } catch(err) {}
-      });
-
-      // Bouton SKIP : forcer la fin
-      DOM.btnSkipVideo.onclick = () => {
+      // Déclencher le thème à THEME_TRIGGER_SECONDS (iframe non-monitorable autrement)
+      let triggered = false;
+      const triggerTheme = () => {
+        if (triggered) return;
+        triggered = true;
         placeholder.innerHTML = '';
         placeholder.style.display = 'none';
         onEnded();
       };
+
+      const timer = setTimeout(triggerTheme, THEME_TRIGGER_SECONDS * 1000);
+
+      // Écouter aussi postMessage Cloudinary au cas où la vidéo finirait avant
+      window.addEventListener('message', function onCldMsg(e) {
+        if (!e.data) return;
+        try {
+          const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+          if (msg.event === 'ended' || msg.type === 'ended') {
+            clearTimeout(timer);
+            window.removeEventListener('message', onCldMsg);
+            triggerTheme();
+          }
+        } catch(err) {}
+      });
     }
 
     // ── CLOUDINARY DIRECT (URL .mp4) ────────────────────────────
@@ -538,7 +523,7 @@ function showRevelationVideo() {
       vid.style.display   = 'block';
       vid.style.width     = '100%';
       vid.style.height    = '100%';
-      vid.style.objectFit = 'cover';
+      vid.style.objectFit = 'contain';
       vid.src = vId;
       vid.load();
 
@@ -556,19 +541,20 @@ function showRevelationVideo() {
         DOM.videoPlayOverlay.style.display = 'flex';
         DOM.videoPlayOverlay.onclick = () => { DOM.videoPlayOverlay.style.display = 'none'; vid.play(); };
       });
-      vid.onended = onEnded;
-      bindVideoProgress(vid);
+      bindVideoTrigger(vid, onEnded);
     }
 
     // ── DIRECT (MP4 local ou URL directe) ───────────────────────
     else if (vType === "direct") {
       const vid = DOM.videoPlayerRevelation;
-      vid.style.display = 'block';
+      vid.style.display   = 'block';
+      vid.style.width     = '100%';
+      vid.style.height    = '100%';
+      vid.style.objectFit = 'contain';
       vid.src = vId;
       vid.load();
       vid.play().catch(() => onEnded());
-      vid.onended = onEnded;
-      bindVideoProgress(vid);
+      bindVideoTrigger(vid, onEnded);
     }
 
     // ── YOUTUBE ─────────────────────────────────────────────────
@@ -592,16 +578,7 @@ function showRevelationVideo() {
   DOM.videoPlayOverlay.onclick = play;
   if (DOM.btnStartVideo) DOM.btnStartVideo.onclick = e => { e.stopPropagation(); play(); };
 
-  // Skip handler (cloudinary-embed sets its own in the play block)
-  if (vType !== "cloudinary-embed") {
-    DOM.btnSkipVideo.onclick = () => {
-      if (isNativeVideo(vType)) {
-        DOM.videoPlayerRevelation.pause();
-        DOM.videoPlayerRevelation.removeAttribute('src');
-      }
-      onEnded();
-    };
-  }
+  // Pas de bouton skip — la transition se fait automatiquement à THEME_TRIGGER_SECONDS
 }
 
 // ==========================================================================
