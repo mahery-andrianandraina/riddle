@@ -148,13 +148,46 @@ function shuffleArray(arr) {
 // ==========================================================================
 // LEADERBOARD
 // ==========================================================================
+// ── JSONP loader pour contourner CORS avec Google Apps Script ──
 function loadLeaderboard(cb) {
   if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
-    fetch(config.googleSheetsUrl)
-      .then(r => r.json())
-      .then(d => { state.leaderboard = d; cb && cb(d); })
-      .catch(() => loadLocalLeaderboard(cb));
-  } else { loadLocalLeaderboard(cb); }
+    const callbackName = 'gsCallback_' + Date.now();
+    const script = document.createElement('script');
+
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      if (Array.isArray(data)) {
+        state.leaderboard = data;
+        cb && cb(data);
+      } else {
+        loadLocalLeaderboard(cb);
+      }
+    };
+
+    // Timeout fallback si Apps Script ne répond pas
+    const timeout = setTimeout(() => {
+      if (window[callbackName]) {
+        delete window[callbackName];
+        try { document.body.removeChild(script); } catch(e) {}
+        loadLocalLeaderboard(cb);
+      }
+    }, 5000);
+
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      loadLocalLeaderboard(cb);
+    };
+
+    script.src = config.googleSheetsUrl
+      + '?action=get&callback=' + callbackName
+      + '&t=' + Date.now(); // cache-bust
+
+    document.body.appendChild(script);
+  } else {
+    loadLocalLeaderboard(cb);
+  }
 }
 
 function loadLocalLeaderboard(cb) {
@@ -165,10 +198,24 @@ function loadLocalLeaderboard(cb) {
 
 function sendScore(name, score, cb) {
   if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
-    fetch(config.googleSheetsUrl, { method: 'POST', mode: 'cors', body: JSON.stringify({ playerName: name, score }) })
-      .then(() => loadLeaderboard(cb))
-      .catch(() => saveScoreLocal(name, score, cb));
-  } else { saveScoreLocal(name, score, cb); }
+    // POST via fetch (no-cors) pour enregistrer le score
+    fetch(config.googleSheetsUrl, {
+      method: 'POST',
+      mode: 'no-cors',        // évite l'erreur CORS sur le POST
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ playerName: name, score: score })
+    })
+    .then(() => {
+      // Attendre 1.5s que Apps Script écrive dans le Sheet,
+      // puis recharger via JSONP
+      setTimeout(() => loadLeaderboard(cb), 1500);
+    })
+    .catch(() => {
+      saveScoreLocal(name, score, cb);
+    });
+  } else {
+    saveScoreLocal(name, score, cb);
+  }
 }
 
 function saveScoreLocal(name, score, cb) {
