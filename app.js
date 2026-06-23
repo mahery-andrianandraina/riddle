@@ -211,7 +211,7 @@ function sendScore(name, score, cb) {
     })
     .then(() => {
       // Rafraîchir depuis GS après écriture (silencieux, met à jour en fond)
-      setTimeout(() => loadLeaderboard(cb), 2000);
+      setTimeout(() => loadLeaderboard(renderLeaderboardView), 1000);
     })
     .catch(() => {
       // Déjà affiché en local, rien de plus à faire
@@ -428,7 +428,13 @@ function handleTimeOut() {
 function handleNextQuestion() {
   DOM.feedbackOverlay.classList.remove('active');
   const next = state.currentQuestionIndex + 1;
-  if (next >= questionsList.length) { showRevelationVideo(); return; }
+  if (next >= questionsList.length) {
+    // Envoyer le score immédiatement au GS dès la fin des questions
+    // (pendant que la vidéo joue, le score est déjà en route)
+    sendScore(state.playerName, state.score, () => {});
+    showRevelationVideo();
+    return;
+  }
   loadQuestion(next);
 }
 
@@ -678,7 +684,9 @@ function endGame() {
   DOM.resultsRankTitle.textContent  = getRankBadge(state.score, max);
   showScreen('results');
   startEndingVideo();
-  sendScore(state.playerName, state.score, () => renderLeaderboardView());
+  // Score déjà envoyé au GS dès la fin des questions
+  // On recharge juste le leaderboard depuis GS (déjà à jour)
+  renderLeaderboardView();
 }
 
 function shareScore() {
