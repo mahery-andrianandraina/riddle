@@ -198,21 +198,26 @@ function loadLocalLeaderboard(cb) {
 
 function sendScore(name, score, cb) {
   if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
-    // POST via fetch (no-cors) pour enregistrer le score
+
+    // 1. Afficher immédiatement le score local dans le leaderboard
+    saveScoreLocal(name, score, cb);
+
+    // 2. Envoyer en arrière-plan au Google Sheet (sans bloquer l'UI)
     fetch(config.googleSheetsUrl, {
       method: 'POST',
-      mode: 'no-cors',        // évite l'erreur CORS sur le POST
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ playerName: name, score: score })
     })
     .then(() => {
-      // Attendre 1.5s que Apps Script écrive dans le Sheet,
-      // puis recharger via JSONP
-      setTimeout(() => loadLeaderboard(cb), 1500);
+      // Rafraîchir depuis GS après écriture (silencieux, met à jour en fond)
+      setTimeout(() => loadLeaderboard(cb), 2000);
     })
     .catch(() => {
-      saveScoreLocal(name, score, cb);
+      // Déjà affiché en local, rien de plus à faire
+      console.warn("Envoi GS échoué, score conservé en local.");
     });
+
   } else {
     saveScoreLocal(name, score, cb);
   }
