@@ -273,8 +273,8 @@ function initGame() {
 }
 
 function startPlay() {
-  const n = DOM.playerNameInput.value.trim();
-  state.playerName = n || 'Anonyme';
+  const n = DOM.playerNameInput.value.trim().toUpperCase();
+  state.playerName = n || 'ANONYME';
   DOM.gamePlayerName.textContent = state.playerName;
   showScreen('game');
   loadQuestion(0);
