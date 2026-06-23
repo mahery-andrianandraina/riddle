@@ -118,8 +118,7 @@
              class="video-fullscreen-player"
              style="display:none;"
              playsinline
-             preload="metadata"
-             controlsList="nodownload">
+             preload="metadata">
       </video>
 
       <!-- Lecteur iframe plein écran (Cloudinary embed / YouTube) -->
@@ -139,19 +138,14 @@
         <p class="play-hint">Cliquez pour lancer la révélation</p>
       </div>
 
-      <!-- HUD flottant : badge source + SKIP (toujours visible) -->
-      <div class="video-floating-hud">
-        <span id="video-source-badge" class="video-source-badge" style="display:none;"></span>
-        <button id="btn-skip-video" class="btn-skip-fullscreen">SKIP ⏭</button>
-      </div>
-
-      <!-- Barre de progression flottante (native video) -->
-      <div id="video-progress-bar" class="video-progress-bar-fullscreen" style="display:none;">
-        <span id="video-current-time" class="video-time">0:00</span>
-        <div class="video-progress-track">
-          <div id="video-progress-fill" class="video-progress-fill"></div>
-        </div>
-        <span id="video-duration" class="video-time">0:00</span>
+      <!-- Pas de contrôles, pas de skip — le thème s'affiche à 23s -->
+      <!-- éléments cachés conservés pour compatibilité JS -->
+      <span id="video-source-badge" style="display:none;"></span>
+      <button id="btn-skip-video" style="display:none;"></button>
+      <div id="video-progress-bar" style="display:none;">
+        <span id="video-current-time"></span>
+        <div class="video-progress-track"><div id="video-progress-fill"></div></div>
+        <span id="video-duration"></span>
       </div>
 
     </section>
