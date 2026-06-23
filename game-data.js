@@ -3,7 +3,7 @@
 // ============================================================
 window.gameData = {
   settings: {
-    googleSheetsUrl: "https://script.google.com/macros/s/AKfycbxT1Rs4am-k6SaX3CGIEyew2AIAA8Ogmwmti73Fhvaswkgnji5Q2Yoy1_6vRTAgko1R/exec",
+    googleSheetsUrl: "https://script.google.com/macros/s/AKfycbx_m3gdkkuDPopVE_P23t1jxnUlr98ssawnFCiPtVA0lNleOdXbx3NL7felflwGsXQ/exec",
     pointsPerQuestion: 1000,
     timeLimitSeconds: 25,
     themeToReveal: "🚀 LE GRAND PROJET / HACKATHON 2026 🚀",
@@ -46,12 +46,12 @@ window.gameData = {
       title: "Qui suis-je ? (L'outil du commercial)",
       clues: [
         "Je suis utilisé chaque jour par l'équipe commerciale pour gérer les commandes clients.",
-        "Grâce à moi, vous pouvez générer des PO en quelques clics.",
+        "Grâce à moi, vous pouvez générer des PO (Purchase Orders) en quelques clics.",
         "Mon nom se compose de 3 lettres et je suis au cœur de toute la gestion commerciale."
       ],
       options: ["PLC", "CRP", "ERP", "SAP"],
       correctAnswer: "CRP",
-      funFact: "CRP relie commandes, stocks et PO pour toute l'équipe commerciale."
+      funFact: "CRP (Commercial Resource Planning) relie commandes, stocks et PO pour toute l'équipe commerciale."
     },
     {
       id: "tool_02",
@@ -77,7 +77,7 @@ window.gameData = {
       ],
       options: ["SO", "PO", "DO", "PR"],
       correctAnswer: "PO",
-      funFact: "Le PO est le déclencheur officiel d'une commande fournisseur dans CRP."
+      funFact: "Le PO (Purchase Order) est le déclencheur officiel d'une commande fournisseur dans CRP."
     },
     {
       id: "tool_04",
@@ -88,7 +88,7 @@ window.gameData = {
         "Je suis l'autre outil maison, complémentaire au CRP.",
         "Je gère les matières, les couleurs, les swatches — tout ce qui touche au tissu."
       ],
-      options: ["CRP", "BAMBOO ROSE", "PLC", "Teams"],
+      options: ["CRP", "Excel", "PLC", "Slack"],
       correctAnswer: "PLC",
       funFact: "CRP et PLC sont deux outils complémentaires : CRP pour le commercial, PLC pour le développement tissu."
     },
