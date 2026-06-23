@@ -3,7 +3,7 @@
 // ============================================================
 window.gameData = {
   settings: {
-    googleSheetsUrl: "",
+    googleSheetsUrl: "https://script.google.com/macros/s/AKfycbxT1Rs4am-k6SaX3CGIEyew2AIAA8Ogmwmti73Fhvaswkgnji5Q2Yoy1_6vRTAgko1R/exec",
     pointsPerQuestion: 1000,
     timeLimitSeconds: 25,
     themeToReveal: "🚀 LE GRAND PROJET / HACKATHON 2026 🚀",
