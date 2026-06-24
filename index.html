@@ -1452,7 +1452,7 @@ body.screen-shake { animation: screenShake 0.5s steps(4, end); }
           <h3 class="leaderboard-title">HIGH SCORES</h3>
           <div class="table-wrapper">
             <table class="leaderboard-table">
-              <thead><tr><th>RANK</th><th>NAME</th><th>SCORE</th><th>DATE</th></tr></thead>
+              <thead><tr><th>RANK</th><th>NAME</th><th>SCORE</th><th>TEMPS</th></tr></thead>
               <tbody id="leaderboard-tbody"></tbody>
             </table>
           </div>
@@ -2006,8 +2006,10 @@ function saveScoreLocal(name, score, totalTime, cb) {
   });
 }
 
-function renderLeaderboardView() {
-  DOM.leaderboardTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Chargement...</td></tr>`;
+function renderLeaderboardView(silent = false) {
+  if (!silent) {
+    DOM.leaderboardTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Chargement...</td></tr>`;
+  }
   loadLeaderboard(list => {
     DOM.leaderboardTbody.innerHTML = '';
     if (!list || list.length === 0) {
@@ -2023,12 +2025,11 @@ function renderLeaderboardView() {
       // Calcul du rang avec ex-aequo
       let rank;
       if (e.score === lastScore) {
-        // Même score = même rang, ex-aequo
-        rank = `${lastRank} EX`;
+        rank = `=${lastRank}`;  // ex: =1, =2
       } else {
         lastRank  = i + 1;
         lastScore = e.score;
-        rank = i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : (i + 1);
+        rank = lastRank;
       }
 
       // Formater le temps
@@ -2053,8 +2054,8 @@ function renderLeaderboardView() {
 function startLeaderboardAutoRefresh() {
   stopLeaderboardAutoRefresh();
   state.leaderboardRefreshId = setInterval(() => {
-    if (DOM.screens.results.classList.contains('active')) renderLeaderboardView();
-  }, 10000);
+    if (DOM.screens.results.classList.contains('active')) renderLeaderboardView(true); // silencieux
+  }, 60000); // toutes les 60 secondes
 }
 
 function stopLeaderboardAutoRefresh() {
