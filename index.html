@@ -1292,6 +1292,118 @@ body.screen-shake { animation: screenShake 0.5s steps(4, end); }
   color: rgba(255,255,255,0.7);
   margin-top: 0.75rem;
 }
+
+/* ==========================================================================
+   VIDEO HUD OVERLAY (pendant la lecture de la vidéo)
+   ========================================================================== */
+#video-hud-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Canvas de la bordure animée */
+#border-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* HUD joueur — haut gauche */
+#vhud-player {
+  position: absolute;
+  top: 10px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(0,0,0,0.75);
+  border: 3px solid #f8b800;
+  padding: 8px 14px;
+  box-shadow: 3px 3px 0 #000, inset -2px -2px 0 #b86000;
+}
+.vhud-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.42rem;
+  color: #aaaaaa;
+  letter-spacing: 1px;
+}
+.vhud-value {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.75rem;
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #000;
+}
+
+/* Compte à rebours — haut droite */
+#vhud-countdown {
+  position: absolute;
+  top: 10px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.75);
+  border: 3px solid #e52521;
+  padding: 10px 16px;
+  box-shadow: 3px 3px 0 #000, inset -2px -2px 0 #901010;
+  min-width: 200px;
+}
+#vhud-timer {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 2.8rem;
+  color: #f8b800;
+  text-shadow: 3px 3px 0 #000;
+  line-height: 1;
+}
+#vhud-progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.2);
+  overflow: hidden;
+}
+#vhud-progress-fill {
+  height: 100%;
+  width: 100%;
+  background: #f8b800;
+  transition: width 1s linear, background 0.3s;
+}
+#vhud-countdown .vhud-label {
+  font-size: 0.4rem;
+  color: #ffffff;
+  text-align: center;
+  line-height: 1.6;
+  letter-spacing: 1.5px;
+}
+
+/* Message clignotant — bas centre */
+#vhud-message {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  color: #f8b800;
+  text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+  background: rgba(0,0,0,0.8);
+  border: 3px solid #f8b800;
+  padding: 10px 20px;
+  white-space: nowrap;
+  box-shadow: 3px 3px 0 #000;
+  opacity: 1;
+  transition: opacity 0.4s;
+  animation: msgBlink 1.5s steps(2) infinite;
+}
+@keyframes msgBlink {
+  0%, 100% { border-color: #f8b800; }
+  50%       { border-color: #e52521; }
+}
   </style>
 </head>
 <body>
@@ -2765,12 +2877,216 @@ function showRevelationVideo() {
     showThemeRevelationScreen();
   };
 
+  // ── Overlay spectaculaire pendant la vidéo ──
+  let videoOverlayAnim = null;
+  let videoOverlayEl   = null;
+
+  function buildVideoOverlay(totalSecs) {
+    // Supprimer si déjà existant
+    const old = document.getElementById('video-hud-overlay');
+    if (old) old.remove();
+
+    const MESSAGES = [
+      'REGARDEZ BIEN...',
+      'LA SURPRISE APPROCHE...',
+      'SOYEZ ATTENTIFS !',
+      'LE MOMENT EST VENU...',
+      'TOUTE L EQUIPE REGARDE...',
+      'IMPOSSIBLE DE RATER CA !'
+    ];
+
+    const el = document.createElement('div');
+    el.id = 'video-hud-overlay';
+    el.innerHTML = `
+      <!-- Bordure NES canvas (coins animés) -->
+      <canvas id="border-canvas"></canvas>
+
+      <!-- HUD joueur (haut gauche) -->
+      <div id="vhud-player">
+        <span class="vhud-label">JOUEUR</span>
+        <span class="vhud-value" id="vhud-name">${state.playerName}</span>
+        <span class="vhud-label" style="margin-top:4px">SCORE</span>
+        <span class="vhud-value" id="vhud-score">${String(state.score).padStart(6,'0')}</span>
+      </div>
+
+      <!-- Compte à rebours (haut droite) -->
+      <div id="vhud-countdown">
+        <span class="vhud-label">LE THEME SE DEVOILE DANS</span>
+        <span id="vhud-timer" class="vhud-timer">25</span>
+        <div id="vhud-progress-track">
+          <div id="vhud-progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Message clignotant (bas centre) -->
+      <div id="vhud-message"></div>
+    `;
+    document.getElementById('screen-video').appendChild(el);
+    videoOverlayEl = el;
+
+    // ── Bordure pixel art animée ──
+    const bc  = document.getElementById('border-canvas');
+    const bctx = bc.getContext('2d');
+    bc.width  = window.innerWidth;
+    bc.height = window.innerHeight;
+
+    const BORDER = 48;
+    const COIN_YELLOW = '#f8b800';
+    const COIN_DARK   = '#b86000';
+    const NES_RED     = '#e52521';
+    const NES_GREEN   = '#00a800';
+    const WHITE       = '#ffffff';
+    const BLACK       = '#000000';
+
+    let borderFrame = 0;
+
+    function drawBorder() {
+      bctx.clearRect(0, 0, bc.width, bc.height);
+      const W = bc.width, H = bc.height;
+      borderFrame++;
+
+      // Ligne de bordure
+      bctx.strokeStyle = COIN_YELLOW;
+      bctx.lineWidth   = 4;
+      bctx.strokeRect(BORDER/2, BORDER/2, W-BORDER, H-BORDER);
+      bctx.strokeStyle = BLACK;
+      bctx.lineWidth   = 2;
+      bctx.strokeRect(BORDER/2-3, BORDER/2-3, W-BORDER+6, H-BORDER+6);
+      bctx.strokeRect(BORDER/2+3, BORDER/2+3, W-BORDER-6, H-BORDER-6);
+
+      const step = 64;
+
+      // Pièces qui tournent sur les bords
+      const coinFrames = [12, 8, 4, 8];
+      const cw = coinFrames[Math.floor(borderFrame/6)%4];
+
+      // Bord haut
+      for (let x = BORDER+16; x < W-BORDER-16; x += step) {
+        const ox = (x+borderFrame)%step < step/2 ? 0 : 2;
+        bctx.fillStyle = COIN_YELLOW;
+        bctx.fillRect(x - cw/2 + ox, BORDER/2-10, cw, 18);
+        bctx.fillStyle = COIN_DARK;
+        bctx.fillRect(x - cw/2 + ox, BORDER/2-10, 3, 18);
+      }
+
+      // Bord bas
+      for (let x = BORDER+16; x < W-BORDER-16; x += step) {
+        const ox = ((x+borderFrame+step/2)%step < step/2) ? 0 : 2;
+        bctx.fillStyle = COIN_YELLOW;
+        bctx.fillRect(x - cw/2 + ox, H-BORDER/2-8, cw, 18);
+        bctx.fillStyle = COIN_DARK;
+        bctx.fillRect(x - cw/2 + ox, H-BORDER/2-8, 3, 18);
+      }
+
+      // Bords gauche et droit : petits blocs ? qui clignotent
+      const qOn = Math.floor(borderFrame/18)%2===0;
+      for (let y = BORDER+16; y < H-BORDER-16; y += step) {
+        // Gauche
+        bctx.fillStyle = qOn ? COIN_YELLOW : '#b86000';
+        bctx.fillRect(BORDER/2-14, y-12, 28, 24);
+        bctx.strokeStyle = BLACK; bctx.lineWidth=2;
+        bctx.strokeRect(BORDER/2-14, y-12, 28, 24);
+        bctx.fillStyle = BLACK;
+        bctx.font = "bold 9px 'Press Start 2P',monospace";
+        bctx.textAlign='center';
+        bctx.fillText('?', BORDER/2, y+5);
+
+        // Droite
+        bctx.fillStyle = qOn ? NES_GREEN : '#007000';
+        bctx.fillRect(W-BORDER/2-14, y-12, 28, 24);
+        bctx.strokeStyle = BLACK; bctx.lineWidth=2;
+        bctx.strokeRect(W-BORDER/2-14, y-12, 28, 24);
+        bctx.fillStyle = WHITE;
+        bctx.fillText('!', W-BORDER/2, y+5);
+      }
+
+      // Coins : blocs CRP/PLC
+      const corners = [
+        [BORDER/2-20, BORDER/2-20, 'CRP', '#1565c0', '#90caf9'],
+        [W-BORDER/2-20, BORDER/2-20, 'PLC', NES_GREEN, '#a9d6a0'],
+        [BORDER/2-20, H-BORDER/2-20, 'PO', NES_RED, '#ff9090'],
+        [W-BORDER/2-20, H-BORDER/2-20, '!', COIN_YELLOW, WHITE],
+      ];
+      corners.forEach(([cx,cy,label,fill,text]) => {
+        bctx.fillStyle = fill;
+        bctx.fillRect(cx, cy, 40, 40);
+        bctx.strokeStyle = BLACK; bctx.lineWidth=3;
+        bctx.strokeRect(cx, cy, 40, 40);
+        bctx.fillStyle = text;
+        bctx.font = "bold 7px 'Press Start 2P',monospace";
+        bctx.textAlign = 'center';
+        bctx.fillText(label, cx+20, cy+25);
+      });
+
+      if (videoOverlayEl && document.getElementById('video-hud-overlay')) {
+        videoOverlayAnim = requestAnimationFrame(drawBorder);
+      }
+    }
+    videoOverlayAnim = requestAnimationFrame(drawBorder);
+
+    // ── Compte à rebours ──
+    const timerEl    = document.getElementById('vhud-timer');
+    const progFill   = document.getElementById('vhud-progress-fill');
+    let secsLeft = totalSecs;
+
+    const countId = setInterval(() => {
+      secsLeft--;
+      if (secsLeft <= 0) { clearInterval(countId); return; }
+      if (!document.getElementById('vhud-timer')) { clearInterval(countId); return; }
+      timerEl.textContent = secsLeft;
+      timerEl.style.color = secsLeft <= 5 ? '#e52521' : '#f8b800';
+      if (secsLeft <= 5) {
+        timerEl.style.animation = 'timerPulse 0.4s steps(2) infinite';
+        playTone(secsLeft<=3?880:660, 'square', 0.06, 0.1, 0);
+      }
+      const pct = (secsLeft / totalSecs) * 100;
+      progFill.style.width = pct + '%';
+      progFill.style.background = secsLeft <= 5 ? '#e52521' : '#f8b800';
+    }, 1000);
+
+    // ── Messages clignotants rotatifs ──
+    const msgEl = document.getElementById('vhud-message');
+    let msgIdx  = 0;
+    msgEl.textContent = MESSAGES[0];
+
+    const msgId = setInterval(() => {
+      if (!document.getElementById('vhud-message')) { clearInterval(msgId); return; }
+      msgEl.style.opacity = '0';
+      setTimeout(() => {
+        if (!document.getElementById('vhud-message')) return;
+        msgIdx = (msgIdx + 1) % MESSAGES.length;
+        msgEl.textContent = MESSAGES[msgIdx];
+        msgEl.style.opacity = '1';
+      }, 400);
+    }, 3000);
+
+    return { countId, msgId };
+  }
+
+  function removeVideoOverlay() {
+    if (videoOverlayAnim) { cancelAnimationFrame(videoOverlayAnim); videoOverlayAnim = null; }
+    const el = document.getElementById('video-hud-overlay');
+    if (el) el.remove();
+    videoOverlayEl = null;
+  }
+
   const launchVideo = () => {
-    // Afficher le bouton play après World Clear
     DOM.videoPlayOverlay.style.display = 'flex';
 
     const play = () => {
       DOM.videoPlayOverlay.style.display = 'none';
+
+      // Lancer l'overlay spectaculaire
+      const overlayIds = buildVideoOverlay(25);
+
+      const onVideoEnded = () => {
+        removeVideoOverlay();
+        if (overlayIds) {
+          clearInterval(overlayIds.countId);
+          clearInterval(overlayIds.msgId);
+        }
+        onEnded();
+      };
 
       if (vType === "cloudinary-embed") {
         const placeholder = DOM.ytPlayerRevelationPlaceholder;
@@ -2789,13 +3105,21 @@ function showRevelationVideo() {
         });
         placeholder.appendChild(iframe);
         let triggered = false;
-        const triggerTheme = () => { if(triggered)return; triggered=true; placeholder.innerHTML=''; placeholder.style.display='none'; onEnded(); };
+        const triggerTheme = () => {
+          if(triggered)return; triggered=true;
+          placeholder.innerHTML=''; placeholder.style.display='none';
+          onVideoEnded();
+        };
         const endTimer = setTimeout(triggerTheme, 25*1000);
         window.addEventListener('message', function onCldMsg(e) {
           if (!e.data) return;
           try {
             const msg = typeof e.data==='string' ? JSON.parse(e.data) : e.data;
-            if (msg.event==='ended'||msg.type==='ended') { clearTimeout(endTimer); window.removeEventListener('message',onCldMsg); triggerTheme(); }
+            if (msg.event==='ended'||msg.type==='ended') {
+              clearTimeout(endTimer);
+              window.removeEventListener('message',onCldMsg);
+              triggerTheme();
+            }
           } catch(err){}
         });
       }
@@ -2805,8 +3129,8 @@ function showRevelationVideo() {
         vid.style.display='block'; vid.style.width='100%'; vid.style.height='100%'; vid.style.objectFit='contain';
         vid.src=vId; vid.load();
         vid.addEventListener('canplay',()=>{if(DOM.videoLoadingSpinner)DOM.videoLoadingSpinner.style.display='none';},{once:true});
-        vid.play().catch(()=>onEnded());
-        bindVideoTrigger(vid, onEnded);
+        vid.play().catch(()=>onVideoEnded());
+        bindVideoTrigger(vid, onVideoEnded);
       }
       else if (vType==="youtube") {
         ensureYTReady().then(()=>{
@@ -2814,7 +3138,10 @@ function showRevelationVideo() {
           ytPlayerRevelation = new YT.Player('yt-player-revelation', {
             height:'100%', width:'100%', videoId:vId,
             playerVars:{autoplay:1,controls:1,modestbranding:1,rel:0,playsinline:1},
-            events:{onReady:e=>e.target.playVideo(), onStateChange:e=>{if(e.data===YT.PlayerState.ENDED)onEnded();}}
+            events:{
+              onReady:e=>e.target.playVideo(),
+              onStateChange:e=>{if(e.data===YT.PlayerState.ENDED)onVideoEnded();}
+            }
           });
         });
       }
