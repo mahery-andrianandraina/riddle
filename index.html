@@ -8,7 +8,1258 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <style>
+/* ==========================================================================
+   DESIGN SYSTEM – SUPER MARIO RETRO NES THEME
+   ========================================================================== */
+:root {
+  --font-pixel: 'Press Start 2P', monospace, sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  --bg-space: #5c94fc;
+  --bg-card: rgba(0,0,0,0.88);
+  --bg-card-hover: rgba(10,10,10,0.92);
+
+  --border-color: #ffffff;
+  --border-color-hover: #fcb800;
+
+  --text-primary: #ffffff;
+  --text-secondary: #fcd8a0;
+  --text-muted: #aaaaaa;
+
+  --color-mario-red: #e52521;
+  --color-luigi-green: #00a800;
+  --color-coin-yellow: #f8b800;
+  --color-brick-brown: #b84418;
+  --color-sky-blue: #5c94fc;
+
+  --color-green: #00a800;
+  --color-red: #e52521;
+
+  --glass-shadow: 0 0 0 4px #000000, 8px 8px 0px rgba(0,0,0,0.35);
+  --transition-fast: 0.15s steps(3,end);
+  --transition-normal: 0.3s steps(4,end);
+}
+
+/* ==========================================================================
+   RESET & BASE
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-space);
+  color: var(--text-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   MARIO CANVAS BACKGROUND
+   ========================================================================== */
+#mario-bg-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+}
+
+/* Semi-transparent dark scrim so quiz UI stays readable */
+#mario-bg-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  /* Gradient: darker at center where cards appear, lighter at edges */
+  background: radial-gradient(
+    ellipse 70% 70% at 50% 50%,
+    rgba(0,0,0,0.45) 0%,
+    rgba(0,0,0,0.15) 100%
+  );
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   APP CONTAINER
+   ========================================================================== */
+.app-container {
+  position: relative;
+  z-index: 2;          /* Above canvas & overlay */
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   GLASS CARD (NES dialog box, now with slight blur for contrast)
+   ========================================================================== */
+.glass-card {
+  background: var(--bg-card);
+  border: 4px solid var(--border-color);
+  border-radius: 0px;
+  padding: 1.5rem;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  transition: all var(--transition-normal);
+  width: 100%;
+  position: relative;
+}
+
+.welcome-card, .riddle-card, .theme-revelation-card, .results-card, .leaderboard-card {
+  animation: pixelFloat 6s infinite ease-in-out;
+}
+
+@keyframes pixelFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+/* ==========================================================================
+   SCREENS
+   ========================================================================== */
+.screen {
+  display: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+  width: 100%;
+  max-width: 440px;
+}
+
+#screen-game { max-width: 1100px; }
+
+
+.screen.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-pixel);
+  font-size: 0.72rem;
+  font-weight: normal;
+  padding: 0.8rem 1.4rem;
+  border-radius: 0px;
+  border: 4px solid #000000;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  text-transform: uppercase;
+  box-shadow: 3px 3px 0px #000000;
+}
+
+.btn-primary {
+  background: var(--color-mario-red);
+  color: #ffffff;
+  box-shadow: inset -4px -4px 0px #901010, inset 4px 4px 0px #ff7070, 3px 3px 0px #000000;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  background: #ff3531;
+  box-shadow: inset -4px -4px 0px #b02020, inset 4px 4px 0px #ff8080, 5px 5px 0px #000000;
+}
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: inset -4px -4px 0px #901010, inset 4px 4px 0px #ff7070, 3px 3px 0px #000000;
+}
+
+.btn-secondary {
+  background: #555555;
+  border: 4px solid #000000;
+  color: var(--text-primary);
+  box-shadow: inset -4px -4px 0px #222222, inset 4px 4px 0px #888888, 3px 3px 0px #000000;
+}
+.btn-secondary:hover {
+  background: #777777;
+  transform: translateY(-2px);
+  box-shadow: inset -4px -4px 0px #333333, inset 4px 4px 0px #aaaaaa, 5px 5px 0px #000000;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.6rem;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px #000000;
+}
+
+.btn-danger-link {
+  background: transparent;
+  border: none;
+  color: var(--color-red);
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  text-decoration: underline;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+  margin-top: 0.5rem;
+  align-self: center;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   SCREEN 1: WELCOME
+   ========================================================================== */
+.welcome-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo-container {
+  width: 70px;
+  height: 70px;
+  border-radius: 0px;
+  background: var(--color-coin-yellow);
+  border: 4px solid #000000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  box-shadow: 4px 4px 0px #000000;
+}
+.logo-icon { font-size: 2rem; z-index: 2; }
+
+.pulse-ring {
+  content: "";
+  position: absolute;
+  top: -8px; left: -8px; right: -8px; bottom: -8px;
+  border: 2px solid var(--color-coin-yellow);
+  animation: pulse 2.5s infinite linear;
+  z-index: 1;
+  opacity: 0.5;
+}
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+.game-title {
+  font-family: var(--font-pixel);
+  font-size: 1.6rem;
+  font-weight: normal;
+  color: var(--color-mario-red);
+  margin-bottom: 0.5rem;
+  text-shadow: 3px 3px 0px #000000;
+}
+.game-subtitle {
+  font-family: var(--font-pixel);
+  font-size: 0.85rem;
+  color: var(--color-coin-yellow);
+  letter-spacing: 1.5px;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 0px #000000;
+}
+.game-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  max-width: 380px;
+  margin-bottom: 2rem;
+}
+
+#welcome-form { width: 100%; max-width: 340px; }
+
+.input-group { text-align: left; margin-bottom: 1.25rem; }
+.input-group label {
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.input-group input {
+  width: 100%;
+  background: #000000;
+  border: 4px solid #ffffff;
+  border-radius: 0px;
+  padding: 0.8rem 1rem;
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+  text-transform: uppercase;  /* affiche en majuscules pendant la saisie */
+}
+.input-group input:focus { outline: none; border-color: var(--color-coin-yellow); }
+#btn-start-game { width: 100%; }
+.btn-arrow { transition: transform var(--transition-fast); }
+#btn-start-game:hover .btn-arrow { transform: translateX(4px); }
+
+/* ==========================================================================
+   SCREEN 2: GAMEPLAY HUD
+   ========================================================================== */
+.game-header-nes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  width: 100%;
+  background: rgba(0,0,0,0.9);
+  border: 4px solid #ffffff;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 4px 4px 0px #000000;
+}
+.hud-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+.hud-label {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+.hud-val {
+  font-family: var(--font-pixel);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+.hud-time-container { display: flex; align-items: center; gap: 0.5rem; }
+.timer-svg-hud { width: 18px; height: 18px; transform: rotate(-90deg); }
+.timer-bg-hud { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
+.timer-bar-hud {
+  fill: none;
+  stroke: var(--color-coin-yellow);
+  stroke-width: 4;
+  stroke-linecap: square;
+  transition: stroke-dasharray 0.1s linear, stroke var(--transition-fast);
+}
+.timer-bar-hud.warning { stroke: var(--color-red); }
+
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: #000000;
+  border: 2px solid #ffffff;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--color-luigi-green);
+  transition: width var(--transition-normal);
+}
+.progress-text-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+}
+.category-badge {
+  background: transparent;
+  border: 2px solid var(--text-secondary);
+  color: var(--text-secondary);
+  padding: 0.15rem 0.4rem;
+  font-size: 0.5rem;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   GAMEPLAY AREA
+   ========================================================================== */
+.game-main-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 1.5rem;
+  align-items: stretch;
+  width: 100%;
+}
+.riddle-container { height: 100%; }
+.riddle-card {
+  height: 100%;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+}
+.riddle-title {
+  font-family: var(--font-pixel);
+  font-size: 0.72rem;
+  color: var(--color-coin-yellow);
+  margin-bottom: 1.2rem;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0.6rem;
+}
+.clues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex-grow: 1;
+}
+.clue-item {
+  background: rgba(255,255,255,0.05);
+  border: 2px solid var(--border-color);
+  padding: 0.75rem 1.1rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  animation: slideInClue 0.4s steps(3,end) forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+.clue-item.active { border-color: var(--color-coin-yellow); }
+.clue-label {
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: 0.48rem;
+  color: var(--color-coin-yellow);
+  margin-bottom: 0.2rem;
+}
+
+.options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  justify-content: center;
+  height: 100%;
+}
+.btn-option {
+  background: var(--color-coin-yellow);
+  color: #000000;
+  border: 4px solid #000000;
+  padding: 1rem 1.2rem;
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  justify-content: flex-start;
+  text-align: left;
+  box-shadow: inset -4px -4px 0px #b86000, inset 4px 4px 0px #ffffff, 3px 3px 0px #000000;
+  width: 100%;
+}
+.btn-option:hover {
+  background: #f89800;
+  transform: translateY(-2px);
+  box-shadow: inset -4px -4px 0px #985000, inset 4px 4px 0px #ffffff, 4px 4px 0px #000000;
+}
+
+/* Feedback overlay */
+.feedback-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 200;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+}
+.feedback-overlay.active { display: flex; }
+.feedback-content {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: scaleUpFeedback 0.25s steps(3,end) forwards;
+}
+#feedback-title {
+  font-family: var(--font-pixel);
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+#feedback-text {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  max-width: 280px;
+  line-height: 1.6;
+}
+.feedback-points {
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+  color: var(--color-luigi-green);
+  margin-bottom: 1.5rem;
+}
+.feedback-overlay.incorrect .feedback-points { color: var(--color-mario-red); }
+#btn-next-question { width: 100%; }
+.shake { animation: shakeEffect 0.35s steps(4,end); }
+@keyframes shakeEffect {
+  0%, 100% { transform: translateX(0); }
+  25%, 75% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+}
+
+/* ==========================================================================
+   SCREEN 3: VIDEO — PLEIN ÉCRAN
+   ========================================================================== */
+
+/* L'écran vidéo prend tout l'espace disponible, fond noir */
+.screen-video-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: #000000;
+  display: none;
+  padding: 0 !important;
+  z-index: 50;
+}
+.screen-video-fullscreen.active {
+  display: block !important;
+}
+
+/* Vidéo native plein écran */
+.video-fullscreen-player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  z-index: 1;
+}
+
+/* Iframe plein écran (Cloudinary embed / YouTube) */
+.video-fullscreen-iframe-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.video-fullscreen-iframe-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Overlay de lancement (fond noir + bouton play centré) */
+.video-play-overlay-fullscreen {
+  position: absolute;
+  inset: 0;
+  background: #000000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.fullscreen-play-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.play-title-emoji {
+  font-size: 2.5rem;
+  animation: textBlink 1.5s steps(2) infinite;
+}
+.play-title-text {
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+  color: var(--color-coin-yellow);
+  text-shadow: 3px 3px 0 #000;
+  letter-spacing: 2px;
+}
+
+/* Gros bouton play */
+.btn-play-fullscreen {
+  width: 90px;
+  height: 90px;
+  background: var(--color-coin-yellow);
+  border: 5px solid #000000;
+  font-size: 2.2rem;
+  color: #000000;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-left: 6px;
+  box-shadow: inset -5px -5px 0px #b86000, inset 5px 5px 0px #fff9cc, 5px 5px 0px #000;
+  transition: transform 0.1s;
+}
+.btn-play-fullscreen:hover { transform: scale(1.06); }
+.btn-play-fullscreen:active { transform: scale(0.97); }
+
+.play-hint {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem !important;
+  color: var(--text-muted) !important;
+  animation: textBlink 2.5s steps(2) infinite;
+}
+
+/* HUD flottant (badge + SKIP) en haut à droite */
+.video-floating-hud {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  z-index: 20;
+}
+
+.btn-skip-fullscreen {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  background: rgba(0,0,0,0.75);
+  color: var(--text-muted);
+  border: 2px solid rgba(255,255,255,0.3);
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  backdrop-filter: blur(4px);
+}
+.btn-skip-fullscreen:hover {
+  background: rgba(229,37,33,0.85);
+  color: #fff;
+  border-color: var(--color-mario-red);
+}
+
+/* Barre de progression flottante (bas de l'écran) */
+.video-progress-bar-fullscreen {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 10px 16px 14px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  z-index: 20;
+}
+.video-progress-bar-fullscreen .video-progress-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  cursor: pointer;
+}
+.video-progress-bar-fullscreen .video-progress-fill {
+  height: 100%;
+  background: var(--color-mario-red);
+  transition: width 0.25s linear;
+}
+.video-progress-bar-fullscreen .video-time {
+  font-family: var(--font-pixel);
+  font-size: 0.42rem;
+  color: rgba(255,255,255,0.7);
+  min-width: 28px;
+}
+/* ==========================================================================
+   SCREEN 3.5: THEME REVELATION
+   ========================================================================== */
+.theme-revelation-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.theme-title-pre {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  color: var(--color-luigi-green);
+  letter-spacing: 2px;
+  margin-bottom: 0.5rem;
+}
+.theme-title-main {
+  font-family: var(--font-pixel);
+  font-size: 1.35rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+.theme-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 2rem;
+  max-width: 380px;
+}
+.revealed-theme-container {
+  position: relative;
+  background: #000000;
+  border: 4px solid var(--color-coin-yellow);
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: 4px 4px 0px #000000;
+}
+.revealed-theme-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  animation: themePulseGlow 4s infinite linear;
+  pointer-events: none;
+}
+@keyframes themePulseGlow {
+  0%, 100% { border: 4px solid var(--color-coin-yellow); }
+  50% { border: 4px solid var(--color-mario-red); }
+}
+.revealed-theme-text {
+  font-family: var(--font-pixel);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  text-shadow: 2px 2px 0px #000;
+  letter-spacing: 0.5px;
+}
+#btn-go-to-results { width: 100%; max-width: 280px; }
+
+/* ==========================================================================
+   SCREEN 4: RESULTS  (plein écran, lisible)
+   ========================================================================== */
+
+/* Écran résultats pleine largeur — le fond Mario reste visible */
+#screen-results {
+  max-width: 100% !important;
+  width: 100%;
+}
+#screen-results.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.results-content {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 2rem;
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+  padding: 2rem 3rem;
+  position: relative;
+  z-index: 2;
+}
+
+/* Card score gauche */
+.results-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+}
+.crown-icon {
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
+  animation: floatCrown 4s ease-in-out infinite;
+}
+.results-title {
+  font-family: var(--font-pixel);
+  font-size: 1.4rem;
+  color: var(--color-coin-yellow);
+  margin-bottom: 0.4rem;
+  text-shadow: 3px 3px 0 #000;
+}
+.results-subtitle {
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+.highlight-text {
+  color: var(--text-primary);
+  font-weight: bold;
+  border-bottom: 4px solid var(--text-primary);
+}
+.score-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #000000;
+  border: 4px solid #ffffff;
+  padding: 1.25rem 2rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: inset -4px -4px 0px #333333;
+}
+.final-score-title {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+  letter-spacing: 1px;
+}
+.final-score-value {
+  font-family: var(--font-pixel);
+  font-size: 2.8rem;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-bottom: 0.6rem;
+}
+.rank-badge {
+  background: transparent;
+  border: 2px solid var(--color-coin-yellow);
+  color: var(--color-coin-yellow);
+  padding: 0.35rem 0.8rem;
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  text-transform: uppercase;
+}
+.results-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 320px;
+}
+.results-actions .btn {
+  font-size: 0.7rem;
+  padding: 1rem;
+}
+
+/* Card leaderboard droite */
+.leaderboard-card {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.leaderboard-title {
+  font-family: var(--font-pixel);
+  font-size: 0.9rem;
+  color: var(--color-coin-yellow);
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 0 #000;
+}
+.table-wrapper {
+  flex: 1;
+  max-height: 420px;
+  overflow-y: auto;
+  background: #000000;
+  border: 4px solid #ffffff;
+}
+.table-wrapper::-webkit-scrollbar { width: 8px; }
+.table-wrapper::-webkit-scrollbar-track { background: #111; }
+.table-wrapper::-webkit-scrollbar-thumb { background: #ffffff; }
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.leaderboard-table th {
+  font-family: var(--font-pixel);
+  color: var(--text-muted);
+  font-weight: normal;
+  padding: 0.8rem 1rem;
+  border-bottom: 4px solid #ffffff;
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  background: #111111;
+  z-index: 10;
+  letter-spacing: 1px;
+}
+.leaderboard-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 2px dashed rgba(255,255,255,0.12);
+  color: var(--text-secondary);
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;            /* plus grand = lisible */
+}
+.leaderboard-table td:nth-child(2) {
+  color: var(--text-primary);   /* nom en blanc */
+  font-size: 0.65rem;
+}
+.leaderboard-table td:nth-child(3) {
+  color: var(--color-coin-yellow); /* score en jaune */
+  font-size: 0.65rem;
+}
+.leaderboard-table tbody tr:hover td { background: rgba(255,255,255,0.04); }
+.leaderboard-table tbody tr:nth-child(1) td:first-child { color: #ffd700; font-size: 1rem; }
+.leaderboard-table tbody tr:nth-child(2) td:first-child { color: #cbd5e1; font-size: 1rem; }
+.leaderboard-table tbody tr:nth-child(3) td:first-child { color: #cd7f32; font-size: 1rem; }
+.btn-danger-link { font-size: 0.55rem; margin-top: 0.75rem; }
+
+/* Ending video background */
+.ending-video-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+.video-dark-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 1;
+}
+.results-content { position: relative; z-index: 2; }
+
+.yt-iframe-placeholder iframe { border: none; }
+#yt-player-ending iframe { transform: scale(1.3); }
+
+/* ==========================================================================
+   KEYFRAMES
+   ========================================================================== */
+@keyframes slideInClue {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleUpFeedback {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes floatCrown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+@media (max-width: 680px) {
+  .game-main-layout { grid-template-columns: 1fr; gap: 1rem; }
+  .options-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    height: auto;
+    gap: 0.5rem;
+  }
+  .btn-option { padding: 0.7rem 0.9rem; font-size: 0.5rem; }
+  .results-content { grid-template-columns: 1fr; gap: 1rem; max-height: 80vh; overflow-y: auto; }
+  .results-card, .leaderboard-card { padding: 1rem; }
+  .score-display { margin-bottom: 0.75rem; padding: 0.6rem 1.2rem; }
+  .final-score-value { font-size: 1.5rem; }
+  .results-actions { grid-template-columns: 1fr 1fr; max-width: 100%; }
+  .table-wrapper { max-height: 120px; }
+}
+@media (max-width: 580px) {
+  .app-container { padding: 0.5rem; }
+  .glass-card { padding: 1rem; }
+  .game-title { font-size: 1.2rem; }
+  .theme-title-main { font-size: 1.1rem; }
+  .revealed-theme-text { font-size: 0.75rem; }
+  .results-actions { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .options-container { grid-template-columns: 1fr; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  #mario-bg-canvas { display: none; }
+  #mario-bg-overlay { background: rgba(5, 10, 50, 0.9); }
+  .welcome-card, .riddle-card, .theme-revelation-card, .results-card, .leaderboard-card {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   VIDÉO CLOUDINARY / ENHANCED VIDEO PLAYER
+   ========================================================================== */
+
+/* Header droit : badge + skip */
+.video-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Badge source (Cloudinary / YouTube / Local) */
+.video-source-badge {
+  font-family: var(--font-pixel);
+  font-size: 0.45rem;
+  background: #1a1a2e;
+  border: 2px solid var(--color-coin-yellow);
+  color: var(--color-coin-yellow);
+  padding: 0.2rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* Spinner de chargement Cloudinary */
+.video-loading-spinner {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  z-index: 20;
+}
+
+.video-loading-spinner p {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  color: var(--color-coin-yellow);
+  animation: textBlink 1s steps(2) infinite;
+}
+
+@keyframes textBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* Anneau rotatif NES style */
+.spinner-ring {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(255,255,255,0.1);
+  border-top-color: var(--color-coin-yellow);
+  border-right-color: var(--color-mario-red);
+  animation: spinRing 0.8s linear infinite;
+}
+
+@keyframes spinRing {
+  to { transform: rotate(360deg); }
+}
+
+/* Bouton play amélioré */
+.play-btn-wrapper {
+  position: relative;
+}
+
+.play-btn-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 3px solid var(--color-coin-yellow);
+  opacity: 0;
+  animation: playRipple 2s infinite;
+}
+
+@keyframes playRipple {
+  0%   { transform: scale(0.9); opacity: 0.7; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.play-hint {
+  font-family: var(--font-pixel);
+  font-size: 0.48rem !important;
+  color: var(--text-muted) !important;
+  animation: textBlink 2s steps(2) infinite;
+}
+
+/* Barre de progression vidéo custom */
+.video-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.2rem 0;
+  width: 100%;
+}
+
+.video-time {
+  font-family: var(--font-pixel);
+  font-size: 0.45rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 28px;
+}
+
+.video-progress-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.2);
+  cursor: pointer;
+  position: relative;
+}
+
+.video-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--color-mario-red);
+  transition: width 0.25s linear;
+  position: relative;
+}
+
+.video-progress-fill::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--color-coin-yellow);
+  border: 2px solid #000;
+}
+
+/* Footer vidéo */
+.video-footer p {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  text-align: center;
+  animation: textBlink 3s steps(2) infinite;
+}
+
+/* Auto-hide HUD & progress bar (JS ajoute/retire opacity) */
+.video-floating-hud,
+.video-progress-bar-fullscreen {
+  transition: opacity 0.4s ease;
+}
+
+/* ==========================================================================
+   EFFETS SPECTACULAIRES
+   ========================================================================== */
+
+/* Confettis pixel art */
+@keyframes confettiFall {
+  0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* Tremblement d'écran */
+@keyframes screenShake {
+  0%,100% { transform: translate(0,0); }
+  10%     { transform: translate(-6px,-4px); }
+  20%     { transform: translate(6px,4px); }
+  30%     { transform: translate(-6px,4px); }
+  40%     { transform: translate(6px,-4px); }
+  50%     { transform: translate(-4px,-2px); }
+  60%     { transform: translate(4px,2px); }
+  70%     { transform: translate(-4px,2px); }
+  80%     { transform: translate(4px,-2px); }
+  90%     { transform: translate(-2px,0); }
+}
+body.screen-shake { animation: screenShake 0.5s steps(4, end); }
+
+/* Timer urgent — clignotement rouge */
+.timer-urgent {
+  color: var(--color-mario-red) !important;
+  animation: timerPulse 0.5s steps(2) infinite;
+}
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; transform: scale(1.1); }
+  50%      { opacity: 0.4; transform: scale(0.9); }
+}
+
+/* Ligne du joueur actuel dans le leaderboard */
+.current-player-row td {
+  background: rgba(248, 184, 0, 0.12) !important;
+  border-left: 4px solid var(--color-coin-yellow) !important;
+}
+.current-player-row td:first-child {
+  color: var(--color-coin-yellow) !important;
+}
+
+/* Médailles rang */
+.rank-cell { font-family: var(--font-pixel); font-size: 0.7rem; }
+.rank-1 { color: #ffd700 !important; font-size: 1.1rem !important; }
+.rank-2 { color: #c0c0c0 !important; font-size: 1rem !important; }
+.rank-3 { color: #cd7f32 !important; font-size: 1rem !important; }
+
+/* Feedback icon — gros texte pixel */
+.feedback-icon {
+  font-family: var(--font-pixel) !important;
+  font-size: 2.5rem !important;
+  color: var(--color-coin-yellow);
+  display: block;
+  margin-bottom: 0.5rem;
+  text-shadow: 3px 3px 0 #000;
+}
+.feedback-overlay.correct .feedback-icon  { color: var(--color-luigi-green); }
+.feedback-overlay.incorrect .feedback-icon { color: var(--color-mario-red); }
+
+/* Score résultats — animation compteur */
+.final-score-value {
+  transition: none !important; /* géré par JS requestAnimationFrame */
+}
+
+/* ==========================================================================
+   ECRAN NEXT PLAYER
+   ========================================================================== */
+#next-player-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.97);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.3s steps(4), transform 0.3s steps(4);
+  pointer-events: none;
+}
+#next-player-overlay.active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: all;
+}
+.next-player-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+}
+.next-player-pre {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 3px;
+}
+.next-player-name {
+  font-family: var(--font-pixel);
+  font-size: 2.2rem;
+  color: var(--color-coin-yellow);
+  text-shadow: 4px 4px 0 #000, -2px -2px 0 #000;
+  animation: nameFlash 0.8s steps(2) infinite;
+}
+@keyframes nameFlash {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+.next-player-hint {
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  animation: textBlink 1s steps(2) infinite;
+}
+.next-player-btn {
+  margin-top: 0.5rem;
+  padding: 1rem 2.5rem !important;
+  font-size: 0.8rem !important;
+}
+
+/* ==========================================================================
+   MARIO REACTION (communiqué via mario-bg.js)
+   ========================================================================== */
+/* Les classes sont ajoutées/supprimées par mario-bg.js via window event */
+
+  </style>
 </head>
 <body>
 
@@ -213,9 +1464,2003 @@
 
   </div>
 
-  <script src="game-data.js"></script>
-  <script src="app.js"></script>
-  <!-- Mario live background — loaded last -->
-  <script src="mario-bg.js"></script>
+  <script>
+// ============================================================
+// game-data.js  —  Super Mario Quiz : Qui Suis-Je ?
+// ============================================================
+window.gameData = {
+  settings: {
+    googleSheetsUrl: "https://script.google.com/macros/s/AKfycbxT1Rs4am-k6SaX3CGIEyew2AIAA8Ogmwmti73Fhvaswkgnji5Q2Yoy1_6vRTAgko1R/exec",
+    pointsPerQuestion: 1000,
+    timeLimitSeconds: 25,
+    themeToReveal: "🚀 LE GRAND PROJET / HACKATHON 2026 🚀",
+
+    // --------------------------------------------------------
+    // VIDÉO D'INTRO  (jouée APRÈS toutes les questions)
+    // --------------------------------------------------------
+    // Types disponibles : "cloudinary" | "youtube" | "direct"
+    //
+    // cloudinary → collez l'URL complète Cloudinary
+    //   ex: "https://res.cloudinary.com/VOTRE_CLOUD/video/upload/v123/ma-video.mp4"
+    //
+    // youtube    → collez uniquement l'ID de la vidéo YouTube
+    //   ex: "dQw4w9WgXcQ"
+    //
+    // direct     → URL ou chemin local vers un fichier .mp4
+    //   ex: "Revelation.mp4"
+    // --------------------------------------------------------
+    revelationVideoType: "cloudinary-embed",
+    revelationVideoId:   "https://player.cloudinary.com/embed/?cloud_name=djz4uow1p&public_id=Revelation_q0bhoc",
+
+    // --------------------------------------------------------
+    // VIDÉO DE FIN  (fond du leaderboard, en boucle muette)
+    // --------------------------------------------------------
+    endingVideoType: "direct",
+    endingVideoId:   "Ending.mp4"
+  },
+
+  // ----------------------------------------------------------
+  // POOL DE QUESTIONS
+  // ----------------------------------------------------------
+  questions: [
+
+    // ════════════════════════════════
+    // OUTILS  —  CRP & PLC
+    // ════════════════════════════════
+    {
+      id: "tool_01",
+      category: "tool",
+      title: "Qui suis-je ? (L'outil du commercial)",
+      clues: [
+        "Je suis utilisé chaque jour par l'équipe commerciale pour gérer les commandes clients.",
+        "Grâce à moi, vous pouvez générer des PO (Purchase Orders) en quelques clics.",
+        "Mon nom se compose de 3 lettres et je suis au cœur de toute la gestion commerciale."
+      ],
+      options: ["PLC", "CRP", "ERP", "SAP"],
+      correctAnswer: "CRP",
+      funFact: "CRP (Commercial Resource Planning) relie commandes, stocks et PO pour toute l'équipe commerciale."
+    },
+    {
+      id: "tool_02",
+      category: "tool",
+      title: "Qui suis-je ? (L'outil tissu)",
+      clues: [
+        "Je suis l'outil de l'équipe développement produit, pas du commercial.",
+        "Je permets de suivre un tissu du concept jusqu'à la validation finale.",
+        "Mon nom en 3 lettres évoque aussi un composant électronique… mais ici je suis 100% textile !"
+      ],
+      options: ["CRP", "PLM", "PLC", "ERP"],
+      correctAnswer: "PLC",
+      funFact: "PLC centralise les fiches matière, les swatches et le suivi complet des collections tissu."
+    },
+    {
+      id: "tool_03",
+      category: "tool",
+      title: "Qui suis-je ? (Le document magique)",
+      clues: [
+        "Je suis un document officiel généré dans CRP.",
+        "Sans moi, aucune commande fournisseur n'est validée.",
+        "Mes deux lettres sont les initiales de 'Purchase Order'."
+      ],
+      options: ["SO", "PO", "DO", "PR"],
+      correctAnswer: "PO",
+      funFact: "Le PO (Purchase Order) est le déclencheur officiel d'une commande fournisseur dans CRP."
+    },
+    {
+      id: "tool_04",
+      category: "tool",
+      title: "Qui suis-je ? (CRP ou PLC ?)",
+      clues: [
+        "L'équipe commerciale utilise CRP… mais qui utilise l'équipe développement tissu ?",
+        "Je suis l'autre outil maison, complémentaire au CRP.",
+        "Je gère les matières, les couleurs, les swatches — tout ce qui touche au tissu."
+      ],
+      options: ["CRP", "Excel", "PLC", "Slack"],
+      correctAnswer: "PLC",
+      funFact: "CRP et PLC sont deux outils complémentaires : CRP pour le commercial, PLC pour le développement tissu."
+    },
+
+    // ════════════════════════════════
+    // PROCESS  —  Développement & TP
+    // ════════════════════════════════
+    {
+      id: "process_01",
+      category: "process",
+      title: "Dans quel ordre ? (Développement échantillon)",
+      clues: [
+        "Le développement d'un échantillon commence toujours par un brief créatif.",
+        "Après le brief, on envoie une demande officielle au fournisseur.",
+        "La première demande officielle envoyée au fournisseur pour démarrer un développement tissu s'appelle…"
+      ],
+      options: ["Un PO", "Un TP (Tech Pack)", "Une LAB DIP request", "Un Strike Off"],
+      correctAnswer: "Un TP (Tech Pack)",
+      funFact: "Le Tech Pack (TP) est le document technique complet envoyé au fournisseur : specs matière, couleur et construction."
+    },
+    {
+      id: "process_02",
+      category: "process",
+      title: "Quelle est la première étape ? (Réception d'un TP)",
+      clues: [
+        "On vient de recevoir un TP du fournisseur. Que fait-on en premier ?",
+        "Avant de valider quoi que ce soit, on s'assure que le tissu correspond aux specs techniques.",
+        "On vérifie grammage, composition, laize et coloris."
+      ],
+      options: [
+        "On génère un PO dans CRP",
+        "On enregistre le TP dans PLC et on contrôle les specs",
+        "On envoie directement en production",
+        "On fait une réunion de collection"
+      ],
+      correctAnswer: "On enregistre le TP dans PLC et on contrôle les specs",
+      funFact: "La première étape à la réception d'un TP : enregistrement dans PLC + contrôle qualité des specs techniques."
+    },
+    {
+      id: "process_03",
+      category: "process",
+      title: "C'est quoi un LAB DIP ?",
+      clues: [
+        "Je suis une étape clé dans le développement coloris d'un tissu.",
+        "Je suis un petit morceau de tissu teint envoyé par le fournisseur pour approbation.",
+        "Sans mon approbation, on ne peut pas lancer la teinture en grande quantité."
+      ],
+      options: [
+        "Un rapport de test qualité",
+        "Un bon de commande couleur",
+        "Un échantillon de teinte envoyé par le fournisseur",
+        "Une fiche technique matière"
+      ],
+      correctAnswer: "Un échantillon de teinte envoyé par le fournisseur",
+      funFact: "Le LAB DIP est un swatch teint que le fournisseur envoie pour valider la couleur avant la production en grande quantité."
+    },
+    {
+      id: "process_04",
+      category: "process",
+      title: "Quand arrive le Strike Off ?",
+      clues: [
+        "Le strike off intervient après le lab dip, mais avant la production.",
+        "Je suis un échantillon de tissu imprimé ou tissé à l'échelle réelle.",
+        "Mon approbation valide le motif, le coloris et la qualité avant le bulk."
+      ],
+      options: [
+        "Avant le lab dip",
+        "Après la production bulk",
+        "Entre le lab dip et la production bulk",
+        "Après la réception du PO"
+      ],
+      correctAnswer: "Entre le lab dip et la production bulk",
+      funFact: "L'ordre est : Brief → TP → Lab Dip → Strike Off → Production Bulk. Chaque étape est validée avant de passer à la suivante."
+    },
+    {
+      id: "process_05",
+      category: "process",
+      title: "Quel outil pour quelle étape ?",
+      clues: [
+        "Le Strike Off vient d'être validé. L'équipe commerciale doit commander la production.",
+        "Il faut créer un document officiel d'achat auprès du fournisseur tissu.",
+        "Quel outil utilisent-ils pour générer ce document ?"
+      ],
+      options: ["PLC", "CRP", "Excel", "Outlook"],
+      correctAnswer: "CRP",
+      funFact: "Une fois le Strike Off validé, CRP prend le relais : l'équipe génère le PO de production directement dans CRP."
+    },
+    {
+      id: "process_06",
+      category: "process",
+      title: "Qui gère quoi dans le process ?",
+      clues: [
+        "Le développement tissu avance. Qui saisit les informations matière dans le système ?",
+        "La fiche technique tissu (composition, grammage, coloris) doit être enregistrée quelque part.",
+        "L'outil utilisé par l'équipe développement pour centraliser ces infos s'appelle…"
+      ],
+      options: ["CRP", "SAP", "PLC", "Jira"],
+      correctAnswer: "PLC",
+      funFact: "PLC est la source de vérité pour toutes les données matière. CRP y puise les infos pour générer les PO."
+    },
+
+    // ════════════════════════════════
+    // PERSONNALITÉ
+    // ════════════════════════════════
+    {
+      id: "personality_01",
+      category: "personality",
+      title: "Quel profil es-tu ? (Style de travail)",
+      clues: [
+        "Tu reçois un nouveau projet. Ta première réaction ?",
+        "Tu ouvres Excel et tu crées un tableau de suivi avec des colonnes colorées avant même d'avoir lu le brief.",
+        "Tu dis souvent : 'On va organiser ça proprement !'"
+      ],
+      options: [
+        "Le Visionnaire Créatif 🎨",
+        "L'Organisateur Maniaque 📊",
+        "Le Pompier de Service 🚒",
+        "Le Philosophe Zen 🧘"
+      ],
+      correctAnswer: "L'Organisateur Maniaque 📊",
+      funFact: "L'Organisateur Maniaque transforme chaque projet en chef-d'œuvre de gestion. Son Excel est une œuvre d'art."
+    },
+    {
+      id: "personality_02",
+      category: "personality",
+      title: "Quel profil es-tu ? (En réunion)",
+      clues: [
+        "La réunion dure depuis 45 minutes et tu as déjà écrit 3 pages de notes.",
+        "Tu interromps doucement pour demander 'Qui fait quoi et pour quand ?'",
+        "Tu envoies le compte-rendu dans les 10 minutes qui suivent la réunion."
+      ],
+      options: [
+        "Le Note-taker Légendaire 📝",
+        "Celui qui regarde son téléphone 📱",
+        "Le Powerpoint Artist 🎭",
+        "Le Silencieux Stratège 🤫"
+      ],
+      correctAnswer: "Le Note-taker Légendaire 📝",
+      funFact: "Le Note-taker Légendaire est le MVP de toute équipe. Sans lui, personne ne se souvient de ce qui a été décidé."
+    },
+    {
+      id: "personality_03",
+      category: "personality",
+      title: "Quel profil es-tu ? (Face à un problème)",
+      clues: [
+        "Le système CRP est tombé en panne au pire moment.",
+        "Ta réaction : tu googles la solution, trouves un workaround en 5 minutes et continues.",
+        "Tes collègues t'appellent en premier quand quelque chose ne marche pas."
+      ],
+      options: [
+        "Le Panicard Organisé 😱",
+        "Le MacGyver du Bureau 🔧",
+        "Le Suiveur de Process 📋",
+        "Le Philosophe du Destin 🎲"
+      ],
+      correctAnswer: "Le MacGyver du Bureau 🔧",
+      funFact: "Le MacGyver du Bureau résout les problèmes avec les moyens du bord. Il a probablement réparé quelque chose avec du scotch et une formule Excel."
+    },
+    {
+      id: "personality_04",
+      category: "personality",
+      title: "Quel rôle joues-tu ? (Process tissu)",
+      clues: [
+        "Tu fais le lien entre le brief créatif et le fournisseur.",
+        "Tu traduis les idées de la créa en specs techniques compréhensibles.",
+        "Tu connais la différence entre un lab dip, un strike off et un bulk… par cœur."
+      ],
+      options: [
+        "Le Commercial Chasseur 🎯",
+        "Le Développeur Tissu 🧵",
+        "Le Designer Rêveur ✨",
+        "Le Comptable Précis 🔢"
+      ],
+      correctAnswer: "Le Développeur Tissu 🧵",
+      funFact: "Le Développeur Tissu est le pont entre la créativité et la réalité industrielle. Sans lui, un beau dessin reste un beau dessin."
+    },
+
+    // ════════════════════════════════
+    // COLLÈGUES
+    // ════════════════════════════════
+    {
+      id: "coworker_01",
+      category: "coworker",
+      title: "Qui suis-je ? (Le collègue caché)",
+      clues: [
+        "Mon café du matin est une affaire d'État : aucune interaction avant 9h15.",
+        "J'adore le code propre mais j'ai horreur de rédiger la documentation.",
+        "J'ai déjà dit : 'Mais pourtant ça marchait en local !'"
+      ],
+      options: ["Alexandre", "Sarah", "Thomas", "Nathalie"],
+      correctAnswer: "Thomas",
+      funFact: "Thomas détient le record du bureau : 7 tasses de café en une seule matinée."
+    },
+    {
+      id: "coworker_02",
+      category: "coworker",
+      title: "Qui suis-je ? (Le collègue caché)",
+      clues: [
+        "Mon double-écran ressemble à un poste de contrôle de la NASA.",
+        "Je suis le premier appelé quand le Wi-Fi décide de prendre sa retraite.",
+        "Mon bureau est couvert de câbles mystérieux que personne n'ose toucher."
+      ],
+      options: ["Julien", "Sophie", "Mehdi", "Antoine"],
+      correctAnswer: "Mehdi",
+      funFact: "Mehdi a un jour réparé le serveur en tapotant simplement sur le boîtier."
+    },
+    {
+      id: "coworker_03",
+      category: "coworker",
+      title: "Qui suis-je ? (Le collègue caché)",
+      clues: [
+        "J'organise les projets avec des tableaux Excel colorés à faire pâlir un designer.",
+        "Mon agenda est plus rempli que celui d'un chef d'État.",
+        "Je commence chaque réunion par : 'Alors, on en est où sur les deadlines ?'"
+      ],
+      options: ["Laurent", "Amélie", "Clara", "Stéphane"],
+      correctAnswer: "Amélie",
+      funFact: "Amélie a déjà planifié ses vacances sur un diagramme de Gantt avec des jalons précis."
+    },
+
+    // ════════════════════════════════
+    // VIE DE BUREAU
+    // ════════════════════════════════
+    {
+      id: "office_01",
+      category: "office-life",
+      title: "Qui suis-je ? (La vie de bureau)",
+      clues: [
+        "Je suis le cœur battant du bureau où naissent toutes les rumeurs.",
+        "Sans moi, la productivité chute de 90% instantanément.",
+        "Je chauffe, je gronde, et je distribue du bonheur en capsules."
+      ],
+      options: ["La machine à café", "L'imprimante", "Le micro-ondes", "Le routeur Wi-Fi"],
+      correctAnswer: "La machine à café",
+      funFact: "Les décisions les plus importantes de l'équipe se prennent toujours devant la machine à café."
+    }
+
+  ],
+
+  // ----------------------------------------------------------
+  // SHUFFLE  (Fisher-Yates)
+  // ----------------------------------------------------------
+  getShuffledQuestions(max) {
+    const pool = [...this.questions];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return max ? pool.slice(0, max) : pool;
+  }
+};
+
+  </script>
+  <script>
+// ==========================================================================
+// app.js  —  Super Mario Quiz : Qui Suis-Je ?
+// Fonctionnalités spectaculaires :
+//  - Sons NES (Web Audio API, aucun fichier externe)
+//  - Compteur de score animé
+//  - Timer d'alerte (clignotement + bip)
+//  - Confettis pixel art sur bonne réponse
+//  - Tremblement d'écran sur mauvaise réponse
+//  - Mario qui réagit (saute sur bonne, tombe sur mauvaise)
+//  - Transition "NEXT PLAYER" entre joueurs
+//  - Leaderboard auto-refresh toutes les 10s
+// ==========================================================================
+
+const gameData    = window.gameData;
+const config      = gameData.settings;
+let   questionsList = [];
+const MAX_QUESTIONS = 8;
+
+// ==========================================================================
+// ÉTAT DU JEU
+// ==========================================================================
+const state = {
+  playerName: '',
+  score: 0,
+  displayedScore: 0,       // score affiché (animé)
+  scoreAnimId: null,
+  currentQuestionIndex: 0,
+  timerSecondsRemaining: 0,
+  timerIntervalId: null,
+  clueIntervalId: null,
+  leaderboardRefreshId: null,
+  cluesShownCount: 1,
+  activeQuestion: null,
+  leaderboard: []
+};
+
+let ytPlayerRevelation = null;
+let ytPlayerEnding     = null;
+
+// ==========================================================================
+// WEB AUDIO ENGINE (sons NES sans fichier externe)
+// ==========================================================================
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, type, duration, volume, delay = 0) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(volume, ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration);
+  } catch(e) {}
+}
+
+function soundCorrect() {
+  // Jingle de bonne réponse NES (do-mi-sol-do)
+  const notes = [[523,0],[659,0.1],[784,0.2],[1047,0.3]];
+  notes.forEach(([f,d]) => playTone(f, 'square', 0.18, 0.18, d));
+}
+
+function soundWrong() {
+  // Son d'erreur descendant
+  playTone(300, 'sawtooth', 0.12, 0.2, 0);
+  playTone(200, 'sawtooth', 0.18, 0.2, 0.12);
+  playTone(150, 'sawtooth', 0.25, 0.18, 0.25);
+}
+
+function soundCoin() {
+  // Son de pièce Mario
+  playTone(988,  'square', 0.08, 0.15, 0);
+  playTone(1319, 'square', 0.12, 0.15, 0.08);
+}
+
+function soundBeep(urgent = false) {
+  // Bip timer (urgent = plus aigu)
+  playTone(urgent ? 880 : 660, 'square', 0.06, 0.12, 0);
+}
+
+function soundLevelClear() {
+  // Fanfare fin de jeu
+  const seq = [
+    [523,0],[523,0.1],[523,0.2],[415,0.3],[523,0.4],
+    [659,0.5],[784,0.7]
+  ];
+  seq.forEach(([f,d]) => playTone(f, 'square', 0.2, 0.2, d));
+}
+
+function soundNextPlayer() {
+  // Jingle "next player"
+  playTone(659, 'square', 0.12, 0.18, 0);
+  playTone(784, 'square', 0.12, 0.18, 0.13);
+  playTone(988, 'square', 0.18, 0.18, 0.26);
+}
+
+// ==========================================================================
+// DOM
+// ==========================================================================
+const DOM = {
+  screens: {
+    welcome:         document.getElementById('screen-welcome'),
+    game:            document.getElementById('screen-game'),
+    video:           document.getElementById('screen-video'),
+    themeRevelation: document.getElementById('screen-theme-revelation'),
+    results:         document.getElementById('screen-results')
+  },
+  welcomeForm:              document.getElementById('welcome-form'),
+  playerNameInput:          document.getElementById('player-name-input'),
+  gamePlayerName:           document.getElementById('game-player-name'),
+  gameScore:                document.getElementById('game-score'),
+  gameTimerSeconds:         document.getElementById('game-timer-seconds'),
+  timerProgress:            document.getElementById('timer-progress'),
+  gameProgressFill:         document.getElementById('game-progress-fill'),
+  gameQuestionNumber:       document.getElementById('game-question-number'),
+  gameQuestionCategory:     document.getElementById('game-question-category'),
+  riddleTitle:              document.getElementById('riddle-title'),
+  cluesContainer:           document.getElementById('clues-container'),
+  optionsButtonsContainer:  document.getElementById('options-buttons-container'),
+  feedbackOverlay:          document.getElementById('feedback-overlay'),
+  feedbackIcon:             document.getElementById('feedback-icon'),
+  feedbackTitle:            document.getElementById('feedback-title'),
+  feedbackText:             document.getElementById('feedback-text'),
+  feedbackPoints:           document.getElementById('feedback-points'),
+  btnNextQuestion:          document.getElementById('btn-next-question'),
+  videoPlayerRevelation:            document.getElementById('video-player-revelation'),
+  ytPlayerRevelationPlaceholder:    document.getElementById('yt-player-revelation'),
+  btnSkipVideo:                     document.getElementById('btn-skip-video'),
+  videoPlayOverlay:                 document.getElementById('video-play-overlay'),
+  btnStartVideo:                    document.getElementById('btn-start-video'),
+  videoLoadingSpinner:              document.getElementById('video-loading-spinner'),
+  videoSourceBadge:                 document.getElementById('video-source-badge'),
+  videoProgressBar:                 document.getElementById('video-progress-bar'),
+  videoProgressFill:                document.getElementById('video-progress-fill'),
+  videoCurrentTime:                 document.getElementById('video-current-time'),
+  videoDuration:                    document.getElementById('video-duration'),
+  revealedThemeText: document.getElementById('revealed-theme-text'),
+  btnGoToResults:    document.getElementById('btn-go-to-results'),
+  resultsPlayerName:       document.getElementById('results-player-name'),
+  resultsFinalScore:       document.getElementById('results-final-score'),
+  resultsRankTitle:        document.getElementById('results-rank-title'),
+  btnShareScore:           document.getElementById('btn-share-score'),
+  btnRestartGame:          document.getElementById('btn-restart-game'),
+  videoPlayerEnding:       document.getElementById('video-player-ending'),
+  ytPlayerEndingPlaceholder: document.getElementById('yt-player-ending'),
+  leaderboardTbody:        document.getElementById('leaderboard-tbody'),
+};
+
+// YouTube API
+if (!window.YT) {
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, document.getElementsByTagName('script')[0]);
+}
+
+function ensureYTReady() {
+  return new Promise(resolve => {
+    if (window.YT && window.YT.Player) { resolve(); return; }
+    const id = setInterval(() => { if (window.YT && window.YT.Player) { clearInterval(id); resolve(); } }, 100);
+    setTimeout(() => { clearInterval(id); resolve(); }, 4000);
+  });
+}
+
+// ==========================================================================
+// UTILITAIRES
+// ==========================================================================
+function showScreen(key) {
+  Object.values(DOM.screens).forEach(s => s && s.classList.remove('active'));
+  DOM.screens[key] && DOM.screens[key].classList.add('active');
+}
+
+function formatScore(n) { return String(Math.round(n)).padStart(4, '0'); }
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function getRankBadge(score, max) {
+  const r = score / max;
+  if (r >= 0.85) return "DETECTIVE D'OR — LEGENDAIRE";
+  if (r >= 0.60) return "AGENT SPECIAL — EXCELLENT";
+  if (r >= 0.35) return "ENQUETEUR JUNIOR — PAS MAL";
+  return "STAGIAIRE PERDU — PEUT MIEUX FAIRE";
+}
+
+function escapeHTML(str) {
+  return str.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t));
+}
+
+function getCategoryLabel(cat) {
+  return {
+    "coworker":    "COLLEGUE",
+    "tool":        "OUTIL",
+    "office-life": "VIE DE BUREAU",
+    "process":     "PROCESS METIER",
+    "personality": "PERSONNALITE"
+  }[cat] || "DIVERS";
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ==========================================================================
+// COMPTEUR DE SCORE ANIME
+// ==========================================================================
+function animateScore(from, to, duration = 800) {
+  cancelAnimationFrame(state.scoreAnimId);
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    const current = Math.round(from + (to - from) * eased);
+    DOM.gameScore.textContent = formatScore(current);
+    state.displayedScore = current;
+    if (t < 1) state.scoreAnimId = requestAnimationFrame(step);
+    else DOM.gameScore.textContent = formatScore(to);
+  }
+  state.scoreAnimId = requestAnimationFrame(step);
+}
+
+// ==========================================================================
+// CONFETTIS PIXEL ART (bonne réponse)
+// ==========================================================================
+function launchConfetti() {
+  const colors = ['#f8b800','#e52521','#00a800','#5c94fc','#ffffff','#fcd8a0'];
+  const container = document.body;
+  for (let i = 0; i < 40; i++) {
+    const el = document.createElement('div');
+    el.style.cssText = `
+      position:fixed;
+      top:-10px;
+      left:${Math.random()*100}vw;
+      width:${6+Math.random()*8}px;
+      height:${6+Math.random()*8}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      z-index:9999;
+      pointer-events:none;
+      animation: confettiFall ${0.8+Math.random()*1.2}s linear forwards;
+      animation-delay:${Math.random()*0.4}s;
+    `;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+  }
+}
+
+// ==========================================================================
+// TREMBLEMENT D'ECRAN (mauvaise réponse)
+// ==========================================================================
+function shakeScreen() {
+  document.body.classList.add('screen-shake');
+  setTimeout(() => document.body.classList.remove('screen-shake'), 500);
+}
+
+// ==========================================================================
+// MARIO REACTION (communique avec mario-bg.js via custom events)
+// ==========================================================================
+function marioReact(type) {
+  // 'correct' = Mario saute de joie, 'wrong' = Mario clignote
+  window.dispatchEvent(new CustomEvent('mario-react', { detail: { type } }));
+}
+
+// ==========================================================================
+// ECRAN "NEXT PLAYER"
+// ==========================================================================
+function showNextPlayerScreen(nextName, callback) {
+  soundNextPlayer();
+  const overlay = document.createElement('div');
+  overlay.id = 'next-player-overlay';
+  overlay.innerHTML = `
+    <div class="next-player-content">
+      <p class="next-player-pre">PROCHAIN JOUEUR</p>
+      <h2 class="next-player-name">${escapeHTML(nextName)}</h2>
+      <p class="next-player-hint">PRET ?</p>
+      <button class="btn btn-primary next-player-btn">JOUER !</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('active'));
+
+  overlay.querySelector('.next-player-btn').addEventListener('click', () => {
+    overlay.classList.remove('active');
+    setTimeout(() => { overlay.remove(); callback(); }, 400);
+  });
+}
+
+// ==========================================================================
+// LEADERBOARD
+// ==========================================================================
+function loadLeaderboard(cb) {
+  if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
+    const callbackName = 'gsCallback_' + Date.now();
+    const script = document.createElement('script');
+
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      try { document.body.removeChild(script); } catch(e){}
+      if (Array.isArray(data)) { state.leaderboard = data; cb && cb(data); }
+      else loadLocalLeaderboard(cb);
+    };
+
+    const timeout = setTimeout(() => {
+      if (window[callbackName]) {
+        delete window[callbackName];
+        try { document.body.removeChild(script); } catch(e){}
+        loadLocalLeaderboard(cb);
+      }
+    }, 5000);
+
+    script.onerror = () => { clearTimeout(timeout); delete window[callbackName]; loadLocalLeaderboard(cb); };
+    script.src = config.googleSheetsUrl + '?action=get&callback=' + callbackName + '&t=' + Date.now();
+    document.body.appendChild(script);
+  } else {
+    loadLocalLeaderboard(cb);
+  }
+}
+
+function loadLocalLeaderboard(cb) {
+  const s = localStorage.getItem('synapse_leaderboard');
+  state.leaderboard = s ? JSON.parse(s) : [];
+  cb && cb(state.leaderboard);
+}
+
+function sendScore(name, score, cb) {
+  if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
+    saveScoreLocal(name, score, cb);
+    fetch(config.googleSheetsUrl, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ playerName: name, score })
+    })
+    .then(() => setTimeout(() => loadLeaderboard(renderLeaderboardView), 1000))
+    .catch(() => console.warn("Envoi GS échoué, score conservé en local."));
+  } else {
+    saveScoreLocal(name, score, cb);
+  }
+}
+
+function saveScoreLocal(name, score, cb) {
+  loadLocalLeaderboard(() => {
+    state.leaderboard.push({
+      playerName: name, score,
+      date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+    });
+    state.leaderboard.sort((a, b) => b.score - a.score);
+    state.leaderboard = state.leaderboard.slice(0, 10);
+    localStorage.setItem('synapse_leaderboard', JSON.stringify(state.leaderboard));
+    cb && cb(state.leaderboard);
+  });
+}
+
+function renderLeaderboardView() {
+  DOM.leaderboardTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Chargement...</td></tr>`;
+  loadLeaderboard(list => {
+    DOM.leaderboardTbody.innerHTML = '';
+    if (!list || list.length === 0) {
+      DOM.leaderboardTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Aucun score. Soyez le premier !</td></tr>`;
+      return;
+    }
+    list.forEach((e, i) => {
+      const row = document.createElement('tr');
+      const medals = ['1', '2', '3'];
+      const rank = i < 3 ? medals[i] : (i + 1);
+      row.innerHTML = `
+        <td class="rank-cell rank-${i+1}">${rank}</td>
+        <td style="font-weight:500;color:var(--text-primary);">${escapeHTML(e.playerName)}</td>
+        <td style="font-family:var(--font-pixel);color:var(--color-coin-yellow);">${e.score} pts</td>
+        <td style="color:var(--text-muted);">${e.date || 'Recemment'}</td>`;
+      // Surligner le joueur actuel
+      if (e.playerName === state.playerName) row.classList.add('current-player-row');
+      DOM.leaderboardTbody.appendChild(row);
+    });
+  });
+}
+
+// Auto-refresh leaderboard toutes les 10s sur l'écran résultats
+function startLeaderboardAutoRefresh() {
+  stopLeaderboardAutoRefresh();
+  state.leaderboardRefreshId = setInterval(() => {
+    if (DOM.screens.results.classList.contains('active')) renderLeaderboardView();
+  }, 10000);
+}
+
+function stopLeaderboardAutoRefresh() {
+  if (state.leaderboardRefreshId) clearInterval(state.leaderboardRefreshId);
+}
+
+// ==========================================================================
+// MOTEUR DE JEU
+// ==========================================================================
+function initGame() {
+  questionsList = gameData.getShuffledQuestions(MAX_QUESTIONS);
+  state.score = 0;
+  state.displayedScore = 0;
+  state.currentQuestionIndex = 0;
+  DOM.gameScore.textContent = formatScore(0);
+  stopLeaderboardAutoRefresh();
+  showScreen('welcome');
+  renderLeaderboardView();
+}
+
+function startPlay() {
+  const n = DOM.playerNameInput.value.trim().toUpperCase();
+  state.playerName = n || 'ANONYME';
+  DOM.gamePlayerName.textContent = state.playerName;
+  showScreen('game');
+  loadQuestion(0);
+}
+
+function loadQuestion(index) {
+  state.currentQuestionIndex  = index;
+  state.activeQuestion        = questionsList[index];
+  state.cluesShownCount       = 1;
+  state.timerSecondsRemaining = config.timeLimitSeconds;
+
+  DOM.gameProgressFill.style.width    = `${(index / questionsList.length) * 100}%`;
+  DOM.gameQuestionNumber.textContent  = `QUESTION ${index + 1} / ${questionsList.length}`;
+  DOM.gameQuestionCategory.textContent = getCategoryLabel(state.activeQuestion.category);
+  DOM.riddleTitle.textContent         = state.activeQuestion.title || "QUI SUIS-JE ?";
+  DOM.cluesContainer.innerHTML        = '';
+
+  // Options mélangées
+  const options = shuffleArray([...state.activeQuestion.options]);
+  DOM.optionsButtonsContainer.innerHTML = '';
+  options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.id = `btn-option-${idx}`;
+    btn.className = 'btn btn-option';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => handleAnswerSelect(opt, btn));
+    DOM.optionsButtonsContainer.appendChild(btn);
+  });
+
+  revealClue(0);
+  updateTimerVisual(config.timeLimitSeconds, config.timeLimitSeconds);
+  DOM.timerProgress.classList.remove('warning');
+  DOM.gameTimerSeconds.classList.remove('timer-urgent');
+  startTimer();
+  startClueTriggers();
+}
+
+function revealClue(idx) {
+  const text = state.activeQuestion.clues[idx];
+  if (!text) return;
+  state.cluesShownCount = idx + 1;
+  DOM.cluesContainer.querySelectorAll('.clue-item').forEach(c => c.classList.remove('active'));
+  const el = document.createElement('div');
+  el.className = 'clue-item active';
+  el.style.animationDelay = '0s';
+  el.innerHTML = `<span class="clue-label">INDICE ${idx + 1}</span><p>${text}</p>`;
+  DOM.cluesContainer.appendChild(el);
+  soundCoin();
+}
+
+// ==========================================================================
+// TIMER AVEC BIPS D'ALERTE
+// ==========================================================================
+function startTimer() {
+  clearInterval(state.timerIntervalId);
+  DOM.gameTimerSeconds.textContent = state.timerSecondsRemaining;
+
+  state.timerIntervalId = setInterval(() => {
+    state.timerSecondsRemaining--;
+    DOM.gameTimerSeconds.textContent = state.timerSecondsRemaining;
+    updateTimerVisual(state.timerSecondsRemaining, config.timeLimitSeconds);
+
+    // Alerte visuelle + sonore à 5 secondes
+    if (state.timerSecondsRemaining <= 5) {
+      DOM.timerProgress.classList.add('warning');
+      DOM.gameTimerSeconds.classList.add('timer-urgent');
+      soundBeep(state.timerSecondsRemaining <= 3); // bips plus urgents à 3s
+    }
+
+    if (state.timerSecondsRemaining <= 0) handleTimeOut();
+  }, 1000);
+}
+
+function startClueTriggers() {
+  clearInterval(state.clueIntervalId);
+  const delay = Math.floor(config.timeLimitSeconds / 3);
+  state.clueIntervalId = setInterval(() => {
+    const next = state.cluesShownCount;
+    const trigger = config.timeLimitSeconds - (next * delay);
+    if (state.timerSecondsRemaining <= trigger && next < state.activeQuestion.clues.length) {
+      revealClue(next);
+    }
+    if (state.cluesShownCount >= state.activeQuestion.clues.length) clearInterval(state.clueIntervalId);
+  }, 250);
+}
+
+function updateTimerVisual(val, max) {
+  DOM.timerProgress.setAttribute('stroke-dasharray', `${(val / max) * 100}, 100`);
+}
+
+function stopQuestionIntervals() {
+  clearInterval(state.timerIntervalId);
+  clearInterval(state.clueIntervalId);
+}
+
+function calculateScore(timeLeft, cluesShown) {
+  const base = config.pointsPerQuestion - (300 * (cluesShown - 1));
+  return Math.max(100, Math.round(base * (0.6 + 0.4 * timeLeft / config.timeLimitSeconds)));
+}
+
+// ==========================================================================
+// GESTION DES REPONSES
+// ==========================================================================
+function handleAnswerSelect(selected, buttonEl) {
+  stopQuestionIntervals();
+  const isCorrect = selected === state.activeQuestion.correctAnswer;
+  let pts = 0;
+
+  DOM.optionsButtonsContainer.querySelectorAll('.btn-option').forEach(btn => {
+    btn.disabled = true;
+    if (btn.textContent === state.activeQuestion.correctAnswer) {
+      btn.style.background  = 'rgba(16,185,129,0.25)';
+      btn.style.borderColor = 'var(--color-green)';
+      btn.style.boxShadow   = '0 0 0 3px rgba(16,185,129,0.4), 3px 3px 0 #000';
+    } else if (btn === buttonEl && !isCorrect) {
+      btn.style.background  = 'rgba(239,68,68,0.25)';
+      btn.style.borderColor = 'var(--color-red)';
+      btn.style.boxShadow   = '0 0 0 3px rgba(239,68,68,0.4), 3px 3px 0 #000';
+    }
+  });
+
+  if (isCorrect) {
+    pts = calculateScore(state.timerSecondsRemaining, state.cluesShownCount);
+    const prevScore = state.score;
+    state.score += pts;
+    soundCorrect();
+    launchConfetti();
+    marioReact('correct');
+    animateScore(prevScore, state.score);
+  } else {
+    soundWrong();
+    shakeScreen();
+    marioReact('wrong');
+    DOM.riddleTitle.classList.add('shake');
+  }
+
+  setTimeout(() => {
+    DOM.riddleTitle.classList.remove('shake');
+    DOM.feedbackOverlay.className = 'feedback-overlay';
+
+    if (isCorrect) {
+      DOM.feedbackOverlay.classList.add('correct');
+      DOM.feedbackIcon.textContent   = '+';
+      DOM.feedbackTitle.textContent  = 'BONNE REPONSE !';
+      DOM.feedbackTitle.style.color  = 'var(--color-green)';
+      DOM.feedbackPoints.textContent = `+${pts} PTS`;
+    } else {
+      DOM.feedbackOverlay.classList.add('incorrect');
+      DOM.feedbackIcon.textContent   = 'X';
+      DOM.feedbackTitle.textContent  = 'INCORRECT !';
+      DOM.feedbackTitle.style.color  = 'var(--color-red)';
+      DOM.feedbackPoints.textContent = '0 PTS';
+    }
+
+    DOM.feedbackText.innerHTML = `La bonne reponse etait <strong>${state.activeQuestion.correctAnswer}</strong>.<br><br>${state.activeQuestion.funFact || ''}`;
+    DOM.feedbackOverlay.classList.add('active');
+  }, 600);
+}
+
+function handleTimeOut() {
+  stopQuestionIntervals();
+  soundWrong();
+  shakeScreen();
+  marioReact('wrong');
+
+  DOM.optionsButtonsContainer.querySelectorAll('.btn-option').forEach(btn => {
+    btn.disabled = true;
+    if (btn.textContent === state.activeQuestion.correctAnswer) {
+      btn.style.background  = 'rgba(16,185,129,0.25)';
+      btn.style.borderColor = 'var(--color-green)';
+    }
+  });
+
+  DOM.feedbackOverlay.className = 'feedback-overlay incorrect';
+  DOM.feedbackIcon.textContent   = '!';
+  DOM.feedbackTitle.textContent  = 'TEMPS ECOULE !';
+  DOM.feedbackTitle.style.color  = 'var(--color-red)';
+  DOM.feedbackPoints.textContent = '0 PTS';
+  DOM.feedbackText.innerHTML     = `Vous avez manque de temps. La bonne reponse etait <strong>${state.activeQuestion.correctAnswer}</strong>.`;
+  DOM.feedbackOverlay.classList.add('active');
+}
+
+function handleNextQuestion() {
+  DOM.feedbackOverlay.classList.remove('active');
+  const next = state.currentQuestionIndex + 1;
+
+  if (next >= questionsList.length) {
+    soundLevelClear();
+    sendScore(state.playerName, state.score, () => {});
+    showRevelationVideo();
+    return;
+  }
+
+  loadQuestion(next);
+}
+
+// ==========================================================================
+// VIDEO REVELATION
+// ==========================================================================
+function isNativeVideo(type) { return type === "cloudinary" || type === "direct"; }
+function isEmbedVideo(type)  { return type === "cloudinary-embed"; }
+
+function showSourceBadge(type) {
+  if (!DOM.videoSourceBadge) return;
+  const labels = { cloudinary:"CLOUDINARY", "cloudinary-embed":"CLOUDINARY", youtube:"YOUTUBE", direct:"LOCAL" };
+  DOM.videoSourceBadge.textContent = labels[type] || type;
+  DOM.videoSourceBadge.style.display = "block";
+}
+
+function bindVideoTrigger(videoEl, onEnded) {
+  if (!videoEl) return;
+  videoEl.addEventListener('contextmenu', e => e.preventDefault());
+  videoEl.addEventListener('ended', onEnded, { once: true });
+}
+
+function showRevelationVideo() {
+  showScreen('video');
+
+  const vType = config.revelationVideoType;
+  const vId   = config.revelationVideoId;
+
+  DOM.videoPlayOverlay.style.display = 'flex';
+  if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
+
+  DOM.videoPlayerRevelation.style.display = 'none';
+  DOM.videoPlayerRevelation.pause();
+  DOM.videoPlayerRevelation.removeAttribute('src');
+  DOM.ytPlayerRevelationPlaceholder.style.display = 'none';
+  if (ytPlayerRevelation) { try { ytPlayerRevelation.destroy(); } catch(e){} ytPlayerRevelation = null; }
+
+  showSourceBadge(vType);
+
+  const onEnded = () => {
+    if (ytPlayerRevelation) { try { ytPlayerRevelation.destroy(); } catch(e){} ytPlayerRevelation = null; }
+    showThemeRevelationScreen();
+  };
+
+  const play = () => {
+    DOM.videoPlayOverlay.style.display = 'none';
+
+    if (vType === "cloudinary-embed") {
+      const placeholder = DOM.ytPlayerRevelationPlaceholder;
+      placeholder.style.display = 'block';
+      placeholder.innerHTML = '';
+
+      const embedUrl = vId + (vId.includes('?') ? '&' : '?')
+        + 'autoplay=true&controls=false&muted=false&loop=false&playsinline=true';
+
+      const iframe = document.createElement('iframe');
+      iframe.src = embedUrl;
+      iframe.width = '100%'; iframe.height = '100%';
+      iframe.style.border = 'none'; iframe.style.display = 'block';
+      iframe.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
+      iframe.allowFullscreen = false;
+
+      if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
+      iframe.addEventListener('load', () => {
+        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
+      });
+      placeholder.appendChild(iframe);
+
+      let triggered = false;
+      const triggerTheme = () => {
+        if (triggered) return;
+        triggered = true;
+        placeholder.innerHTML = '';
+        placeholder.style.display = 'none';
+        onEnded();
+      };
+
+      const endTimer = setTimeout(triggerTheme, 25 * 1000);
+      window.addEventListener('message', function onCldMsg(e) {
+        if (!e.data) return;
+        try {
+          const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+          if (msg.event === 'ended' || msg.type === 'ended') {
+            clearTimeout(endTimer);
+            window.removeEventListener('message', onCldMsg);
+            triggerTheme();
+          }
+        } catch(err) {}
+      });
+    }
+    else if (vType === "cloudinary" || vType === "direct") {
+      if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
+      const vid = DOM.videoPlayerRevelation;
+      vid.style.display = 'block';
+      vid.style.width = '100%'; vid.style.height = '100%';
+      vid.style.objectFit = 'contain';
+      vid.src = vId; vid.load();
+      vid.addEventListener('canplay', () => { if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none'; }, { once: true });
+      vid.play().catch(() => onEnded());
+      bindVideoTrigger(vid, onEnded);
+    }
+    else if (vType === "youtube") {
+      ensureYTReady().then(() => {
+        DOM.ytPlayerRevelationPlaceholder.style.display = 'block';
+        ytPlayerRevelation = new YT.Player('yt-player-revelation', {
+          height: '100%', width: '100%', videoId: vId,
+          playerVars: { autoplay:1, controls:1, modestbranding:1, rel:0, playsinline:1 },
+          events: {
+            onReady: e => e.target.playVideo(),
+            onStateChange: e => { if (e.data === YT.PlayerState.ENDED) onEnded(); }
+          }
+        });
+      });
+    }
+  };
+
+  DOM.videoPlayOverlay.onclick = play;
+  if (DOM.btnStartVideo) DOM.btnStartVideo.onclick = e => { e.stopPropagation(); play(); };
+}
+
+// ==========================================================================
+// REVELATION THEME
+// ==========================================================================
+function showThemeRevelationScreen() {
+  DOM.revealedThemeText.textContent = config.themeToReveal || "SURPRISE 2026";
+  soundLevelClear();
+  showScreen('themeRevelation');
+}
+
+// ==========================================================================
+// VIDEO DE FIN
+// ==========================================================================
+function startEndingVideo() {
+  const vType = config.endingVideoType, vId = config.endingVideoId;
+  DOM.videoPlayerEnding.style.display = 'none';
+  DOM.ytPlayerEndingPlaceholder.style.display = 'none';
+  DOM.videoPlayerEnding.pause();
+  if (ytPlayerEnding) { try { ytPlayerEnding.destroy(); } catch(e){} ytPlayerEnding = null; }
+
+  if (vType === "youtube") {
+    ensureYTReady().then(() => {
+      DOM.ytPlayerEndingPlaceholder.style.display = 'block';
+      ytPlayerEnding = new YT.Player('yt-player-ending', {
+        height:'100%', width:'100%', videoId:vId,
+        playerVars:{autoplay:1,controls:0,disablekb:1,fs:0,iv_load_policy:3,loop:1,playlist:vId,modestbranding:1,mute:1,rel:0,playsinline:1},
+        events:{onReady:e=>{e.target.mute();e.target.playVideo();}}
+      });
+    });
+  } else {
+    DOM.videoPlayerEnding.style.display = 'block';
+    DOM.videoPlayerEnding.src = vId;
+    DOM.videoPlayerEnding.muted = true;
+    DOM.videoPlayerEnding.loop = true;
+    DOM.videoPlayerEnding.load();
+    DOM.videoPlayerEnding.play().catch(()=>{});
+  }
+}
+
+function stopEndingVideo() {
+  if (isNativeVideo(config.endingVideoType)) DOM.videoPlayerEnding.pause();
+  else if (ytPlayerEnding) { try { ytPlayerEnding.destroy(); } catch(e){} ytPlayerEnding = null; }
+}
+
+// ==========================================================================
+// FIN DE JEU
+// ==========================================================================
+function endGame() {
+  DOM.resultsPlayerName.textContent = state.playerName;
+
+  // Score final animé depuis 0
+  DOM.resultsFinalScore.textContent = '0';
+  let displayed = 0;
+  const target = state.score;
+  const duration = 1200;
+  const start = performance.now();
+  function animFinal(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    displayed = Math.round(eased * target);
+    DOM.resultsFinalScore.textContent = displayed;
+    if (t < 1) requestAnimationFrame(animFinal);
+    else {
+      DOM.resultsFinalScore.textContent = target;
+      soundLevelClear();
+    }
+  }
+  requestAnimationFrame(animFinal);
+
+  const max = questionsList.length * config.pointsPerQuestion;
+  DOM.resultsRankTitle.textContent = getRankBadge(state.score, max);
+
+  showScreen('results');
+  startEndingVideo();
+  renderLeaderboardView();
+  startLeaderboardAutoRefresh();
+}
+
+function shareScore() {
+  const max = questionsList.length * config.pointsPerQuestion;
+  const badge = getRankBadge(state.score, max);
+  const text  = `Super Mario Quiz - Edition Equipe\nJoueur : ${state.playerName}\nScore : ${state.score} pts\nRang : ${badge}\nRelevez le defi !`;
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      const orig = DOM.btnShareScore.innerHTML;
+      DOM.btnShareScore.innerHTML = '<span>COPIE !</span>';
+      setTimeout(() => DOM.btnShareScore.innerHTML = orig, 2000);
+    })
+    .catch(() => alert(text));
+}
+
+// ==========================================================================
+// EVENT LISTENERS
+// ==========================================================================
+function setupEventListeners() {
+  DOM.welcomeForm.addEventListener('submit', e => { e.preventDefault(); startPlay(); });
+  DOM.btnNextQuestion.addEventListener('click', handleNextQuestion);
+  DOM.btnShareScore.addEventListener('click', shareScore);
+  DOM.btnGoToResults.addEventListener('click', endGame);
+  DOM.btnRestartGame.addEventListener('click', () => {
+    stopEndingVideo();
+    stopLeaderboardAutoRefresh();
+    initGame();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupEventListeners();
+  initGame();
+});
+
+  </script>
+  <script>
+/**
+ * mario-bg.js — Super Mario Bros NES Authentic Theme
+ * Vraies couleurs NES : ciel bleu #5c94fc, sol brun/orange,
+ * blocs ? jaunes, briques orange, tuyaux verts, nuages blancs
+ * Mario pixel-art authentique rouge/bleu
+ */
+(function () {
+  "use strict";
+
+  const canvas = document.getElementById("mario-bg-canvas");
+  const ctx    = canvas.getContext("2d");
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  /* ============================================================
+     PALETTE NES AUTHENTIQUE
+     ============================================================ */
+  const NES = {
+    // Ciel
+    sky:          "#5c94fc",  // bleu Mario NES exact
+    // Sol
+    ground:       "#c84c0c",  // brun-orange brique NES
+    groundTop:    "#e86018",
+    groundDark:   "#6c2800",
+    groundBrick:  "#e86018",
+    // Briques
+    brick:        "#c84c0c",
+    brickLight:   "#fcd8a0",
+    brickDark:    "#702000",
+    // Bloc ?
+    qBlock:       "#f8b800",
+    qBlockLight:  "#fce870",
+    qBlockDark:   "#b86000",
+    qBlockText:   "#000000",
+    // Tuyaux
+    pipeGreen:    "#00a800",
+    pipeLight:    "#00cc00",
+    pipeDark:     "#007000",
+    pipeVDark:    "#004400",
+    // Nuages
+    cloud:        "#ffffff",
+    cloudShadow:  "#c0c0c0",
+    // Collines
+    hill:         "#00a800",
+    hillDark:     "#007000",
+    // Mario
+    marioRed:     "#e52521",
+    marioSkin:    "#fcd8a0",
+    marioPants:   "#0000e0",
+    marioHat:     "#e52521",
+    marioShoe:    "#702000",
+    marioMust:    "#702000",
+    // Goomba
+    goombaBrown:  "#c84c0c",
+    goombaDark:   "#702000",
+    goombaFeet:   "#702000",
+    // Coin
+    coin:         "#f8b800",
+    coinShine:    "#fce870",
+    // Text labels
+    white:        "#ffffff",
+    black:        "#000000",
+  };
+
+  const TILE         = 32;
+  const GH           = 64;
+  const GRAVITY      = 0.55;
+  const SCROLL_SPEED = 2.2;
+  const FPS          = 60;
+
+  let worldX = 0;
+
+  function px(x, y, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+  }
+
+  /* ============================================================
+     MARIO (pixel art NES authentique, échelle 3px/pixel)
+     ============================================================ */
+  const mario = {
+    x: 110, y: 0, vy: 0,
+    onGround: false,
+    frame: 0, ft: 0,
+    invincible: 0,
+    get groundY() { return canvas.height - GH - 48; },
+    reset() { this.y = this.groundY; this.vy = 0; this.onGround = true; this.invincible = 0; },
+    jump() { if (this.onGround) { this.vy = -13.5; this.onGround = false; } },
+    update() {
+      this.ft++;
+      if (this.ft % 5 === 0) this.frame = (this.frame + 1) % 3;
+      this.vy += GRAVITY;
+      this.y  += this.vy;
+      if (this.y >= this.groundY) { this.y = this.groundY; this.vy = 0; this.onGround = true; }
+      if (this.invincible > 0) this.invincible--;
+      if (this.y > canvas.height + 80) this.reset();
+    },
+    draw() {
+      const sx = this.x, sy = this.y, S = 3;
+      const isJ = !this.onGround;
+      if (this.invincible > 0 && Math.floor(this.invincible / 4) % 2 === 0) return;
+
+      // ── Chapeau ──
+      px(sx+3*S, sy+0*S, 6*S, S, NES.marioHat);
+      px(sx+2*S, sy+1*S, 8*S, S, NES.marioHat);
+      // ── Cheveux / Visage ──
+      px(sx+1*S, sy+2*S, 4*S, S, NES.marioMust);
+      px(sx+1*S, sy+3*S, 9*S, 2*S, NES.marioSkin);
+      px(sx+2*S, sy+5*S, 8*S, S,   NES.marioSkin);
+      // ── Yeux ──
+      px(sx+2*S, sy+3*S, 2*S, S, NES.black);
+      px(sx+6*S, sy+3*S, 2*S, S, NES.black);
+      // ── Moustache ──
+      px(sx+1*S, sy+5*S, 9*S, S, NES.marioMust);
+      px(sx+0*S, sy+6*S, 5*S, S, NES.marioMust);
+      px(sx+6*S, sy+6*S, 5*S, S, NES.marioMust);
+      // ── Chemise rouge ──
+      px(sx+0*S, sy+7*S, 11*S, 3*S, NES.marioRed);
+      // ── Salopette bleue ──
+      px(sx+1*S, sy+10*S, 9*S, S, NES.marioPants);
+      px(sx+0*S, sy+11*S, 11*S, 2*S, NES.marioPants);
+      // Bretelles
+      px(sx+2*S, sy+10*S, 2*S, S, NES.marioPants);
+      px(sx+7*S, sy+10*S, 2*S, S, NES.marioPants);
+      // ── Jambes ──
+      if (isJ) {
+        px(sx+1*S, sy+13*S, 4*S, 3*S, NES.marioPants);
+        px(sx+6*S, sy+13*S, 4*S, 3*S, NES.marioPants);
+        px(sx+0*S, sy+14*S, 5*S, 2*S, NES.marioShoe);
+        px(sx+6*S, sy+14*S, 5*S, 2*S, NES.marioShoe);
+      } else {
+        const f = this.frame;
+        const leg1Y = [0, 1, 0][f];
+        const leg2Y = [0, -1, 0][f];
+        px(sx+1*S, sy+13*S+leg1Y, 4*S, 3*S, NES.marioPants);
+        px(sx+6*S, sy+13*S+leg2Y, 4*S, 3*S, NES.marioPants);
+        px(sx+0*S, sy+14*S+leg1Y, 5*S, 2*S, NES.marioShoe);
+        px(sx+6*S, sy+14*S+leg2Y, 5*S, 2*S, NES.marioShoe);
+      }
+      // ── Bras ──
+      const armOff = isJ ? -1 : [0,1,-1][this.frame];
+      px(sx-1*S, sy+7*S+armOff, 2*S, 3*S, NES.marioRed);
+      px(sx+10*S,sy+7*S-armOff, 2*S, 3*S, NES.marioRed);
+      px(sx-1*S, sy+9*S+armOff, 2*S, S, NES.marioSkin);
+      px(sx+10*S,sy+9*S-armOff, 2*S, S, NES.marioSkin);
+    },
+    get rect() { return { x: this.x, y: this.y, w: 33, h: 48 }; }
+  };
+
+  /* ============================================================
+     BLOC ? (Question Block NES)
+     ============================================================ */
+  class QBlock {
+    constructor(wx, y) {
+      this.worldX = wx; this.y = y;
+      this.hit = false; this.bounceT = 0; this.bounceY = 0;
+      this.ft = 0; this.frame = 0;
+      // Label CRP ou PLC selon worldX
+      this.label = (Math.floor(wx / 200) % 2 === 0) ? "CRP" : "PLC";
+    }
+    update() {
+      this.ft++;
+      if (!this.hit && this.ft % 18 === 0) this.frame = (this.frame + 1) % 2;
+      if (this.bounceT > 0) {
+        this.bounceT--;
+        this.bounceY = Math.sin((12 - this.bounceT) / 12 * Math.PI) * -10;
+      } else this.bounceY = 0;
+    }
+    activate() {
+      if (!this.hit) {
+        this.hit = true; this.bounceT = 12;
+        spawnCoin(this.worldX + 16, this.y - 20);
+        spawnParticles(this.worldX + 16, this.y, NES.qBlock, 4);
+        spawnFloatText(this.worldX - worldX + 16, this.y, "+200");
+        score += 200;
+      }
+    }
+    draw(cx) {
+      const sx = this.worldX - cx, sy = this.y + this.bounceY;
+      if (this.hit) {
+        // Bloc frappé = gris/marron
+        px(sx, sy, TILE, TILE, "#888888");
+        px(sx, sy, TILE, 3, "#aaaaaa");
+        px(sx, sy, 3, TILE, "#aaaaaa");
+        px(sx+TILE-3, sy, 3, TILE, "#555555");
+        px(sx, sy+TILE-3, TILE, 3, "#555555");
+        return;
+      }
+      // Fond jaune
+      px(sx, sy, TILE, TILE, NES.qBlock);
+      // Bordure NES
+      px(sx, sy, TILE, 3, NES.qBlockLight);
+      px(sx, sy, 3, TILE, NES.qBlockLight);
+      px(sx+TILE-3, sy, 3, TILE, NES.qBlockDark);
+      px(sx, sy+TILE-3, TILE, 3, NES.qBlockDark);
+      // Coin interne
+      px(sx+3, sy+3, TILE-6, TILE-6, NES.qBlock);
+      // "?" pixel art
+      const q = this.frame === 0;
+      if (q) {
+        px(sx+10, sy+6,  12, 3, NES.black);
+        px(sx+18, sy+9,   4, 6, NES.black);
+        px(sx+12, sy+13,  6, 4, NES.black);
+        px(sx+12, sy+20,  6, 4, NES.black);
+      } else {
+        px(sx+10, sy+6,  12, 3, NES.qBlockDark);
+        px(sx+18, sy+9,   4, 6, NES.qBlockDark);
+        px(sx+12, sy+13,  6, 4, NES.qBlockDark);
+        px(sx+12, sy+20,  6, 4, NES.qBlockDark);
+      }
+      // Label CRP/PLC au-dessus
+      ctx.save();
+      ctx.font = "bold 6px 'Press Start 2P',monospace";
+      ctx.fillStyle = this.label === "CRP" ? "#90caf9" : "#a9d6a0";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "#000"; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
+      ctx.fillText(this.label, sx + TILE/2, sy - 4);
+      ctx.restore();
+    }
+    get rect() { return { x: this.worldX, y: this.y, w: TILE, h: TILE }; }
+  }
+
+  /* ============================================================
+     BRIQUE NES
+     ============================================================ */
+  class Brick {
+    constructor(wx, y) {
+      this.worldX = wx; this.y = y;
+      this.alive = true; this.shakeT = 0; this.shakeY = 0;
+    }
+    update() {
+      if (this.shakeT > 0) { this.shakeT--; this.shakeY = Math.sin((8-this.shakeT)/8*Math.PI)*-8; }
+      else this.shakeY = 0;
+    }
+    shake() {
+      this.shakeT = 8;
+      spawnParticles(this.worldX+16, this.y, NES.brick, 4);
+    }
+    draw(cx) {
+      if (!this.alive) return;
+      const sx = this.worldX - cx, sy = this.y + this.shakeY;
+      px(sx, sy, TILE, TILE, NES.brick);
+      // Joints horizontaux et verticaux
+      px(sx, sy, TILE, 3, NES.brickLight);
+      px(sx, sy, 3, TILE, NES.brickLight);
+      px(sx+TILE-3, sy, 3, TILE, NES.brickDark);
+      px(sx, sy+TILE-3, TILE, 3, NES.brickDark);
+      // Ligne de mortier
+      px(sx+3, sy+TILE/2, TILE-6, 2, NES.brickDark);
+      px(sx+TILE/2, sy+4, 2, TILE/2-4, NES.brickDark);
+    }
+    get rect() { return { x: this.worldX, y: this.y, w: TILE, h: TILE }; }
+  }
+
+  /* ============================================================
+     TUYAU VERT NES
+     ============================================================ */
+  class Pipe {
+    constructor(wx, h) {
+      this.worldX = wx; this.h = h;
+      this.label = (Math.floor(wx / 300) % 2 === 0) ? "CRP" : "PLC";
+    }
+    draw(cx) {
+      const sx = this.worldX - cx;
+      const sy = canvas.height - GH - this.h * TILE;
+      const w = TILE * 2;
+
+      // Corps du tuyau
+      px(sx+4, sy+TILE, w-8, this.h*TILE-TILE, NES.pipeGreen);
+      // Reflet gauche
+      px(sx+4, sy+TILE, 8, this.h*TILE-TILE, NES.pipeLight);
+      // Ombre droite
+      px(sx+w-8, sy+TILE, 4, this.h*TILE-TILE, NES.pipeDark);
+      // Bordure noire
+      ctx.strokeStyle = NES.black; ctx.lineWidth = 3;
+      ctx.strokeRect(sx+4, sy+TILE, w-8, this.h*TILE-TILE);
+
+      // Chapeau du tuyau
+      px(sx, sy, w, TILE, NES.pipeGreen);
+      px(sx, sy, 6, TILE, NES.pipeLight);
+      px(sx+w-6, sy, 6, TILE, NES.pipeDark);
+      ctx.strokeRect(sx, sy, w, TILE);
+
+      // Ligne séparation chapeau/corps
+      px(sx+4, sy+TILE-3, w-8, 3, NES.pipeDark);
+
+      // Label coloré sur le chapeau
+      ctx.save();
+      ctx.font = "bold 7px 'Press Start 2P',monospace";
+      ctx.fillStyle = this.label === "CRP" ? "#90caf9" : "#ffd166";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "#000"; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
+      ctx.fillText(this.label, sx + w/2, sy + TILE/2 + 3);
+      ctx.restore();
+    }
+    get rect() {
+      return { x: this.worldX, y: canvas.height-GH-this.h*TILE, w: TILE*2, h: this.h*TILE };
+    }
+  }
+
+  /* ============================================================
+     GOOMBA NES (pixel art authentique)
+     ============================================================ */
+  class Goomba {
+    constructor(wx) {
+      this.worldX = wx; this.x = wx;
+      this.y = canvas.height - GH - 32;
+      this.vx = -1.8;
+      this.alive = true; this.squished = false; this.squishT = 0;
+      this.frame = 0; this.ft = 0;
+    }
+    update() {
+      if (this.squished) { this.squishT--; if (this.squishT<=0) this.alive=false; return; }
+      this.x += this.vx; this.ft++;
+      if (this.ft % 20 === 0) this.frame ^= 1;
+    }
+    squish() {
+      this.squished = true; this.squishT = 30;
+      spawnParticles(this.x+16, this.y+16, NES.goombaBrown, 6);
+      spawnFloatText(this.x - worldX + 16, this.y, "+100");
+      score += 100;
+    }
+    draw(cx) {
+      const sx = this.x - cx, sy = this.y;
+      if (this.squished) {
+        // Goomba écrasé plat
+        px(sx, sy+18, 32, 8, NES.goombaBrown);
+        px(sx+2, sy+16, 28, 4, NES.goombaDark);
+        // Pieds écartés
+        px(sx-2, sy+22, 10, 6, NES.goombaFeet);
+        px(sx+24, sy+22, 10, 6, NES.goombaFeet);
+        return;
+      }
+      // Corps principal
+      px(sx+2, sy+8, 28, 22, NES.goombaBrown);
+      // Tête
+      px(sx+4, sy, 24, 14, NES.goombaBrown);
+      // Sourcils en colère
+      px(sx+5, sy+3, 8, 3, NES.goombaDark);
+      px(sx+19, sy+3, 8, 3, NES.goombaDark);
+      // Angles intérieurs sourcils
+      px(sx+10, sy+4, 2, 2, NES.goombaDark);
+      px(sx+20, sy+4, 2, 2, NES.goombaDark);
+      // Yeux blancs
+      px(sx+6,  sy+7, 7, 6, NES.white);
+      px(sx+19, sy+7, 7, 6, NES.white);
+      // Pupilles
+      px(sx+10, sy+8, 3, 4, NES.black);
+      px(sx+21, sy+8, 3, 4, NES.black);
+      // Contour foncé bas tête
+      px(sx+4, sy+12, 24, 2, NES.goombaDark);
+      // Pieds animés
+      const lx = this.frame === 0 ? 0 : 5;
+      px(sx+2+lx, sy+28, 10, 6, NES.goombaDark);
+      px(sx+20-lx, sy+28, 10, 6, NES.goombaDark);
+    }
+    get rect() { return { x: this.x+4, y: this.y+4, w: 24, h: 26 }; }
+  }
+
+  /* ============================================================
+     PIÈCE NES (spinning coin)
+     ============================================================ */
+  class Coin {
+    constructor(wx, y) {
+      this.worldX = wx; this.y = y;
+      this.vy = -9; this.alive = true; this.frame = 0; this.timer = 50;
+    }
+    update() {
+      this.vy += 0.5; this.y += this.vy;
+      this.frame = (this.frame + 0.4) % 4;
+      if (--this.timer <= 0) this.alive = false;
+    }
+    draw(cx) {
+      const sx = this.worldX - cx;
+      const frames = [10, 6, 2, 6];
+      const w = frames[Math.floor(this.frame)];
+      const ox = (10 - w) / 2;
+      // Corps de la pièce
+      px(sx - 5 + ox, this.y, w, 16, NES.coin);
+      // Reflet
+      px(sx - 5 + ox, this.y + 2, Math.max(2, w/3), 4, NES.coinShine);
+    }
+  }
+
+  /* ============================================================
+     PARTICULES
+     ============================================================ */
+  class Particle {
+    constructor(wx, y, color) {
+      this.worldX = wx; this.y = y;
+      this.vx = (Math.random()-0.5)*7;
+      this.vy = Math.random()*-8-2;
+      this.color = color;
+      this.life = 35+Math.random()*20; this.maxLife = this.life;
+      this.size = 4+Math.random()*5;
+    }
+    update() { this.vy+=0.45; this.worldX+=this.vx; this.y+=this.vy; this.life--; }
+    draw(cx) {
+      ctx.globalAlpha = this.life/this.maxLife;
+      px(this.worldX-cx, this.y, this.size, this.size, this.color);
+      ctx.globalAlpha = 1;
+    }
+    get alive() { return this.life > 0; }
+  }
+
+  /* ============================================================
+     TEXTE FLOTTANT
+     ============================================================ */
+  class FloatText {
+    constructor(x, y, text) { this.x=x; this.y=y; this.text=text; this.life=50; }
+    update() { this.y -= 1; this.life--; }
+    draw() {
+      ctx.globalAlpha = Math.min(1, this.life/12);
+      ctx.font = "bold 9px 'Press Start 2P',monospace";
+      ctx.fillStyle = NES.coin;
+      ctx.strokeStyle = NES.black; ctx.lineWidth = 3;
+      ctx.strokeText(this.text, this.x, this.y);
+      ctx.fillText(this.text, this.x, this.y);
+      ctx.globalAlpha = 1;
+    }
+    get alive() { return this.life > 0; }
+  }
+
+  /* ============================================================
+     NUAGE NES (blanc, forme authentique)
+     ============================================================ */
+  class Cloud {
+    constructor(x, y, scale) { this.x=x; this.y=y; this.scale=scale||1; }
+    update() {
+      this.x -= SCROLL_SPEED * 0.3;
+      if (this.x < -120 * this.scale) this.x = canvas.width + 60;
+    }
+    draw() {
+      const s = this.scale;
+      const x = this.x, y = this.y;
+      ctx.fillStyle = NES.white;
+      // Forme en 3 cercles comme NES
+      this._circle(x + 16*s, y + 20*s, 16*s);
+      this._circle(x + 32*s, y + 10*s, 22*s);
+      this._circle(x + 56*s, y + 14*s, 18*s);
+      this._circle(x + 72*s, y + 20*s, 14*s);
+      // Base plate
+      ctx.fillRect(x + 14*s, y + 20*s, 62*s, 16*s);
+      // Contour noir
+      ctx.strokeStyle = NES.black; ctx.lineWidth = 2;
+      ctx.strokeRect(x + 14*s, y + 20*s, 62*s, 16*s);
+      // Ombre bas droite
+      ctx.fillStyle = NES.cloudShadow;
+      ctx.fillRect(x + 14*s, y + 32*s, 62*s, 4*s);
+    }
+    _circle(cx, cy, r) {
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  /* ============================================================
+     COLLINE NES (verte, forme demi-cercle avec yeux)
+     ============================================================ */
+  class Hill {
+    constructor(x, size) { this.x=x; this.size=size; }
+    update() { this.x -= SCROLL_SPEED * 0.15; if(this.x<-200) this.x=canvas.width+100; }
+    draw() {
+      const x=this.x, s=this.size;
+      const baseY = canvas.height - GH;
+      ctx.fillStyle = NES.hill;
+      ctx.beginPath();
+      ctx.arc(x + 60*s, baseY, 60*s, Math.PI, 0);
+      ctx.closePath(); ctx.fill();
+      // Reflet
+      ctx.fillStyle = NES.hillDark;
+      ctx.beginPath();
+      ctx.arc(x + 60*s, baseY, 58*s, Math.PI, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = NES.hill;
+      ctx.beginPath();
+      ctx.arc(x + 55*s, baseY, 50*s, Math.PI, 0);
+      ctx.closePath(); ctx.fill();
+      // Points blancs
+      ctx.fillStyle = NES.white;
+      [[30,15],[50,8],[70,5],[90,12]].forEach(([dx,dy]) => {
+        ctx.fillRect(x+dx*s, baseY-dy*s, 4*s, 4*s);
+      });
+    }
+  }
+
+  /* ============================================================
+     PANNEAU DE ZONE (CRP / PLC)
+     ============================================================ */
+  class ZoneSign {
+    constructor(wx, label, color) {
+      this.worldX = wx; this.label = label; this.color = color;
+    }
+    draw(cx) {
+      const sx = this.worldX - cx;
+      const baseY = canvas.height - GH;
+      // Poteau
+      px(sx+20, baseY-80, 5, 80, "#8B4513");
+      px(sx+21, baseY-80, 2, 80, "#a0522d");
+      // Panneau
+      px(sx, baseY-100, 50, 28, this.color);
+      px(sx, baseY-100, 50, 2, NES.white);
+      px(sx, baseY-100, 2, 28, NES.white);
+      px(sx+48, baseY-100, 2, 28, NES.black);
+      px(sx, baseY-74, 50, 2, NES.black);
+      ctx.save();
+      ctx.font = "bold 8px 'Press Start 2P',monospace";
+      ctx.fillStyle = NES.white;
+      ctx.textAlign = "center";
+      ctx.shadowColor = NES.black; ctx.shadowOffsetX=1; ctx.shadowOffsetY=1;
+      ctx.fillText(this.label, sx+25, baseY-83);
+      ctx.restore();
+    }
+  }
+
+  /* ============================================================
+     ÉTAT / SPAWN
+     ============================================================ */
+  let score = 0;
+  let entities = {
+    qblocks:[], bricks:[], pipes:[], goombas:[],
+    coins:[], particles:[], floatTexts:[], clouds:[], hills:[], signs:[]
+  };
+
+  function spawnCoin(wx, y) { entities.coins.push(new Coin(wx, y)); }
+  function spawnParticles(wx, y, color, n) {
+    for (let i=0;i<n;i++) entities.particles.push(new Particle(wx, y, color));
+  }
+  function spawnFloatText(sx, sy, text) { entities.floatTexts.push(new FloatText(sx, sy, text)); }
+
+  /* ============================================================
+     GÉNÉRATION DU MONDE
+     ============================================================ */
+  let generatedUpTo = 0;
+
+  function generateChunk(from, to) {
+    for (let wx = from; wx < to; wx += 160 + Math.random()*80) {
+      const roll = Math.random();
+      const blockY = canvas.height - GH - TILE*4;
+
+      if (roll < 0.28) {
+        // Bloc ?
+        entities.qblocks.push(new QBlock(wx, blockY));
+      } else if (roll < 0.5) {
+        // Rangée de briques
+        const n = 3 + Math.floor(Math.random()*5);
+        for (let b=0; b<n; b++) entities.bricks.push(new Brick(wx+b*TILE, blockY));
+        // Bloc ? au milieu
+        if (Math.random()<0.4) {
+          const mid = Math.floor(n/2);
+          entities.qblocks.push(new QBlock(wx+mid*TILE, blockY - TILE));
+        }
+      } else if (roll < 0.7) {
+        // Tuyau
+        const h = 2 + Math.floor(Math.random()*3);
+        entities.pipes.push(new Pipe(wx, h));
+      } else if (roll < 0.88) {
+        // Goomba
+        entities.goombas.push(new Goomba(wx + canvas.width));
+      } else {
+        // Combo : escalier de briques + bloc ?
+        for (let s=0;s<3;s++) {
+          entities.bricks.push(new Brick(wx+s*TILE, canvas.height-GH-TILE*(s+2)));
+        }
+        entities.qblocks.push(new QBlock(wx+TILE, blockY-TILE));
+      }
+    }
+    generatedUpTo = to;
+  }
+
+  function initWorld() {
+    Object.keys(entities).forEach(k => entities[k]=[]);
+    worldX = 0; score = 0; generatedUpTo = 0;
+
+    // Nuages répartis
+    const cloudPositions = [
+      [80, 0.12, 1], [260, 0.08, 0.85], [450, 0.15, 1.1],
+      [620, 0.1, 0.9], [820, 0.13, 1.2]
+    ];
+    cloudPositions.forEach(([xPct, yPct, s]) => {
+      entities.clouds.push(new Cloud(canvas.width*xPct/100, canvas.height*yPct, s));
+    });
+
+    // Collines
+    entities.hills.push(new Hill(60, 1.2));
+    entities.hills.push(new Hill(350, 0.9));
+    entities.hills.push(new Hill(650, 1.1));
+
+    // Panneaux de zone
+    entities.signs.push(new ZoneSign(280, "CRP", "#1565c0"));
+
+    generateChunk(300, canvas.width + 800);
+  }
+
+  /* ============================================================
+     COLLISIONS
+     ============================================================ */
+  function rectsOverlap(a, b) {
+    return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y;
+  }
+  function landsOn(mr, br) {
+    const pb = mario.y + 48 - mario.vy;
+    return mr.x+mr.w>br.x+2 && mr.x<br.x+br.w-2 && pb<=br.y+3 && mr.y+mr.h>=br.y;
+  }
+  function hitsBottom(mr, br) {
+    const pt = mario.y - mario.vy;
+    return mr.x+mr.w>br.x+2 && mr.x<br.x+br.w-2 && pt>=br.y+br.h-4 && mr.y<=br.y+br.h;
+  }
+
+  /* ============================================================
+     AUTO-JUMP IA
+     ============================================================ */
+  let jumpCD = 0;
+  function autoJump() {
+    if (!mario.onGround || jumpCD > 0) return;
+    const lx = mario.x + 90;
+    const pipe = entities.pipes.find(p => { const rx=p.worldX-worldX; return rx>mario.x+8&&rx<lx; });
+    const goomba = entities.goombas.find(g => g.alive&&!g.squished&&(g.x-worldX)>mario.x+5&&(g.x-worldX)<lx);
+    const block = [...entities.qblocks,...entities.bricks].find(b => {
+      const rx=b.worldX-worldX, ry=b.y;
+      return rx>mario.x&&rx<lx&&ry>mario.groundY-90;
+    });
+    if (pipe||goomba||block) { mario.jump(); jumpCD=40; }
+  }
+
+  /* ============================================================
+     UPDATE
+     ============================================================ */
+  function update() {
+    worldX += SCROLL_SPEED;
+    if (jumpCD>0) jumpCD--;
+    autoJump();
+    mario.update();
+
+    // Générer le monde en avance
+    if (worldX + canvas.width + 1000 > generatedUpTo) {
+      generateChunk(generatedUpTo, generatedUpTo+1600);
+      // Panneau alterné CRP/PLC tous les ~1600px
+      const label = Math.floor(generatedUpTo/1600)%2===0 ? "PLC" : "CRP";
+      const color  = label==="CRP" ? "#1565c0" : "#00a800";
+      entities.signs.push(new ZoneSign(generatedUpTo-200, label, color));
+    }
+
+    // Update entités
+    entities.clouds.forEach(c=>c.update());
+    entities.hills.forEach(h=>h.update());
+    entities.qblocks.forEach(b=>b.update());
+    entities.bricks.forEach(b=>b.update());
+    entities.goombas.forEach(g=>g.update());
+    entities.coins.forEach(c=>c.update());
+    entities.particles.forEach(p=>p.update());
+    entities.floatTexts.forEach(f=>f.update());
+
+    // Cull hors écran
+    const cull = worldX - 300;
+    entities.qblocks   = entities.qblocks.filter(b=>b.worldX>cull);
+    entities.bricks    = entities.bricks.filter(b=>b.worldX>cull);
+    entities.pipes     = entities.pipes.filter(p=>p.worldX>cull);
+    entities.goombas   = entities.goombas.filter(g=>g.alive&&g.x>cull);
+    entities.signs     = entities.signs.filter(s=>s.worldX>cull);
+    entities.coins     = entities.coins.filter(c=>c.alive);
+    entities.particles = entities.particles.filter(p=>p.alive);
+    entities.floatTexts= entities.floatTexts.filter(f=>f.alive);
+
+    // Nouveaux nuages
+    if (Math.random()<0.003)
+      entities.clouds.push(new Cloud(canvas.width+20, canvas.height*(0.05+Math.random()*0.2), 0.8+Math.random()*0.5));
+
+    // Mario vs blocs
+    [...entities.qblocks,...entities.bricks].forEach(b=>{
+      const br={x:b.worldX-worldX,y:b.y,w:TILE,h:TILE};
+      const mr={x:mario.x,y:mario.y,w:33,h:48};
+      if(hitsBottom(mr,br)){mario.vy=Math.abs(mario.vy)*0.3;if(b instanceof QBlock)b.activate();else b.shake();}
+      if(landsOn(mr,br)){mario.y=br.y-48;mario.vy=0;mario.onGround=true;}
+    });
+
+    // Mario vs tuyaux
+    entities.pipes.forEach(p=>{
+      const pr={x:p.worldX-worldX,y:p.rect.y,w:p.rect.w,h:p.rect.h};
+      const mr={x:mario.x,y:mario.y,w:33,h:48};
+      if(landsOn(mr,pr)){mario.y=pr.y-48;mario.vy=0;mario.onGround=true;}
+    });
+
+    // Mario vs goombas
+    entities.goombas.forEach(g=>{
+      if(g.squished||mario.invincible>0)return;
+      const gr={x:g.x-worldX+4,y:g.y+4,w:24,h:26};
+      const mr={x:mario.x,y:mario.y,w:33,h:48};
+      if(rectsOverlap(mr,gr)){
+        const pb=mario.y+48-mario.vy;
+        if(pb<=gr.y+6&&mario.vy>0){g.squish();mario.vy=-10;}
+        else{mario.invincible=80;mario.vy=-7;}
+      }
+    });
+  }
+
+  /* ============================================================
+     DESSIN SOL NES
+     ============================================================ */
+  function drawGround() {
+    const gy = canvas.height - GH;
+    const w  = canvas.width;
+    const off = Math.floor(worldX) % 32;
+
+    // Couche principale
+    px(0, gy, w, GH, NES.ground);
+    // Rangée du dessus (plus claire)
+    px(0, gy, w, 6, NES.groundTop);
+    // Rangée du bas (plus sombre)
+    px(0, canvas.height-5, w, 5, NES.groundDark);
+
+    // Grille de briques sur le sol
+    ctx.strokeStyle = NES.groundDark;
+    ctx.lineWidth = 2;
+    // Lignes verticales
+    for (let x=-off; x<w+32; x+=32) {
+      ctx.beginPath(); ctx.moveTo(x, gy+6); ctx.lineTo(x, canvas.height-5); ctx.stroke();
+    }
+    // Lignes horizontales
+    for (let y=gy+6; y<canvas.height-5; y+=16) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      // Décalage alterné
+      const rowOff = Math.floor((y-gy)/16)%2===0 ? 0 : 16;
+      for (let x=-off+rowOff; x<w+32; x+=32) {
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, Math.min(y+16, canvas.height-5)); ctx.stroke();
+      }
+    }
+    // Ligne de lumière en haut
+    px(0, gy, w, 2, NES.brickLight);
+  }
+
+  /* ============================================================
+     DESSIN CIEL NES
+     ============================================================ */
+  function drawSky() {
+    ctx.fillStyle = NES.sky;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  /* ============================================================
+     HUD NES (score en haut)
+     ============================================================ */
+  function drawHUD() {
+    ctx.save();
+    ctx.font = "bold 8px 'Press Start 2P',monospace";
+    ctx.fillStyle = NES.white;
+    ctx.shadowColor = NES.black; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2;
+    ctx.fillText("MARIO", 16, 22);
+    ctx.fillText(String(score).padStart(6,"0"), 16, 38);
+    ctx.fillText("🪙×" + Math.floor(score/200), 160, 22);
+    ctx.fillText("WORLD", 260, 22);
+    ctx.fillText("1-1", 268, 38);
+    ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
+    ctx.restore();
+  }
+
+  /* ============================================================
+     RENDER
+     ============================================================ */
+  function draw() {
+    drawSky();
+    entities.hills.forEach(h=>h.draw());
+    entities.clouds.forEach(c=>c.draw());
+    drawGround();
+    entities.pipes.forEach(p=>p.draw(worldX));
+    entities.signs.forEach(s=>s.draw(worldX));
+    entities.qblocks.forEach(b=>b.draw(worldX));
+    entities.bricks.forEach(b=>b.draw(worldX));
+    entities.coins.forEach(c=>c.draw(worldX));
+    entities.goombas.forEach(g=>g.draw(worldX));
+    mario.draw();
+    entities.particles.forEach(p=>p.draw(worldX));
+    entities.floatTexts.forEach(f=>f.draw());
+    drawHUD();
+  }
+
+  /* ============================================================
+     BOUCLE
+     ============================================================ */
+  let last = 0;
+  function loop(ts) {
+    if (ts - last >= 1000/FPS) { update(); draw(); last = ts; }
+    requestAnimationFrame(loop);
+  }
+
+  mario.reset();
+  initWorld();
+  requestAnimationFrame(loop);
+
+  // Réaction de Mario aux événements du quiz
+  window.addEventListener('mario-react', (e) => {
+    const type = e.detail && e.detail.type;
+    if (type === 'correct') {
+      // Mario saute de joie (double saut)
+      mario.jump();
+      setTimeout(() => { if (!mario.onGround) mario.vy = -14; else mario.jump(); }, 200);
+    } else if (type === 'wrong') {
+      // Mario clignote (invincibilité brève)
+      mario.invincible = 60;
+    }
+  });
+
+})();
+
+  </script>
 </body>
 </html>
