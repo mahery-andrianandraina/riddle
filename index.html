@@ -1259,6 +1259,39 @@ body.screen-shake { animation: screenShake 0.5s steps(4, end); }
    ========================================================================== */
 /* Les classes sont ajoutées/supprimées par mario-bg.js via window event */
 
+
+/* ==========================================================================
+   WORLD CLEAR OVERLAY
+   ========================================================================== */
+#world-clear-overlay {
+  font-family: 'Press Start 2P', monospace;
+  background: #000000 !important;
+}
+
+#wc-title {
+  animation: wcTitleGlow 0.4s steps(2) infinite;
+}
+@keyframes wcTitleGlow {
+  0%, 100% { text-shadow: 4px 4px 0 #000, 0 0 20px #f8b800; }
+  50%       { text-shadow: 4px 4px 0 #000; }
+}
+
+.wc-star {
+  font-family: 'Press Start 2P', monospace;
+  color: transparent;
+  transition: all 0.3s steps(3);
+  font-size: 2.5rem !important;
+  display: inline-block;
+}
+
+/* Play overlay après World Clear */
+#video-play-overlay .play-hint {
+  animation: textBlink 1.2s steps(2) infinite;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: rgba(255,255,255,0.7);
+  margin-top: 0.75rem;
+}
   </style>
 </head>
 <body>
@@ -1355,42 +1388,56 @@ body.screen-shake { animation: screenShake 0.5s steps(4, end); }
       </div>
     </section>
 
-    <!-- SCREEN 3: VIDEO PLEIN ÉCRAN (Cloudinary / YouTube / Direct) -->
+    <!-- SCREEN 3: VIDEO PLEIN ÉCRAN avec transition Mario -->
     <section id="screen-video" class="screen screen-video-fullscreen">
 
-      <!-- Spinner chargement (centré sur fond noir) -->
+      <!-- ═══ PHASE 1 : MARIO ENTRE DANS LE TUYAU ═══ -->
+      <canvas id="pipe-transition-canvas" style="display:none; position:absolute; inset:0; width:100%; height:100%; z-index:5;"></canvas>
+
+      <!-- ═══ PHASE 2 : WORLD CLEAR ═══ -->
+      <div id="world-clear-overlay" style="display:none; position:absolute; inset:0; z-index:6; background:#000; align-items:center; justify-content:center; flex-direction:column; gap:1.5rem;">
+        <p id="wc-world" style="font-family:'Press Start 2P',monospace; font-size:1rem; color:#ffffff; letter-spacing:4px;">WORLD 1-1</p>
+        <h1 id="wc-title" style="font-family:'Press Start 2P',monospace; font-size:2.5rem; color:#f8b800; text-shadow:4px 4px 0 #000; letter-spacing:3px;">WORLD CLEAR!</h1>
+        <div style="display:flex; gap:3rem; margin-top:1rem;">
+          <div style="text-align:center;">
+            <p style="font-family:'Press Start 2P',monospace; font-size:0.55rem; color:#aaa; margin-bottom:0.5rem;">SCORE</p>
+            <p id="wc-score" style="font-family:'Press Start 2P',monospace; font-size:1.4rem; color:#fff;">000000</p>
+          </div>
+          <div style="text-align:center;">
+            <p style="font-family:'Press Start 2P',monospace; font-size:0.55rem; color:#aaa; margin-bottom:0.5rem;">COINS</p>
+            <p id="wc-coins" style="font-family:'Press Start 2P',monospace; font-size:1.4rem; color:#f8b800;">x00</p>
+          </div>
+          <div style="text-align:center;">
+            <p style="font-family:'Press Start 2P',monospace; font-size:0.55rem; color:#aaa; margin-bottom:0.5rem;">TIME</p>
+            <p id="wc-time" style="font-family:'Press Start 2P',monospace; font-size:1.4rem; color:#fff;">000</p>
+          </div>
+        </div>
+        <!-- Étoiles -->
+        <div id="wc-stars" style="display:flex; gap:1rem; margin-top:0.5rem;">
+          <span class="wc-star" style="font-size:2rem; opacity:0.2;">*</span>
+          <span class="wc-star" style="font-size:2rem; opacity:0.2;">*</span>
+          <span class="wc-star" style="font-size:2rem; opacity:0.2;">*</span>
+        </div>
+      </div>
+
+      <!-- ═══ PHASE 3 : VIDÉO ═══ -->
       <div id="video-loading-spinner" class="video-loading-spinner" style="display:none;">
         <div class="spinner-ring"></div>
-        <p>Chargement vidéo…</p>
+        <p>Chargement...</p>
       </div>
 
-      <!-- Lecteur natif plein écran (Cloudinary direct / MP4) -->
-      <video id="video-player-revelation"
-             class="video-fullscreen-player"
-             style="display:none;"
-             playsinline
-             preload="metadata">
-      </video>
+      <video id="video-player-revelation" class="video-fullscreen-player" style="display:none;" playsinline preload="metadata"></video>
+      <div id="yt-player-revelation" class="video-fullscreen-iframe-container" style="display:none;"></div>
 
-      <!-- Lecteur iframe plein écran (Cloudinary embed / YouTube) -->
-      <div id="yt-player-revelation"
-           class="video-fullscreen-iframe-container"
-           style="display:none;"></div>
-
-      <!-- Overlay bouton PLAY (initial, centré sur fond noir) -->
-      <div id="video-play-overlay" class="video-play-overlay-fullscreen">
-        <div class="fullscreen-play-title">
-          <span class="play-title-emoji">🚨</span>
-          <h2 class="play-title-text">RÉVÉLATION SPÉCIALE</h2>
-        </div>
+      <!-- Overlay PLAY (affiché après World Clear) -->
+      <div id="video-play-overlay" class="video-play-overlay-fullscreen" style="display:none;">
         <div class="play-btn-wrapper">
-          <button id="btn-start-video" class="btn-play-fullscreen">▶</button>
+          <button id="btn-start-video" class="btn-play-fullscreen">&#9658;</button>
         </div>
-        <p class="play-hint">Cliquez pour lancer la révélation</p>
+        <p class="play-hint">CLIQUEZ POUR LA REVELATION</p>
       </div>
 
-      <!-- Pas de contrôles, pas de skip — le thème s'affiche à 23s -->
-      <!-- éléments cachés conservés pour compatibilité JS -->
+      <!-- Éléments cachés pour compatibilité JS -->
       <span id="video-source-badge" style="display:none;"></span>
       <button id="btn-skip-video" style="display:none;"></button>
       <div id="video-progress-bar" style="display:none;">
@@ -2443,13 +2490,268 @@ function bindVideoTrigger(videoEl, onEnded) {
   videoEl.addEventListener('ended', onEnded, { once: true });
 }
 
+// ==========================================================================
+// TRANSITION MARIO : TUYAU + WORLD CLEAR + VIDEO
+// ==========================================================================
+
+function runPipeTransition(score, onDone) {
+  const canvas = document.getElementById('pipe-transition-canvas');
+  const ctx2   = canvas.getContext('2d');
+  canvas.style.display = 'block';
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const W = canvas.width, H = canvas.height;
+  const CX = W / 2;
+
+  // Couleurs NES
+  const SKY    = '#5c94fc';
+  const GROUND = '#c84c0c';
+  const PIPE_G = '#00a800';
+  const PIPE_L = '#00cc00';
+  const PIPE_D = '#007000';
+  const BLACK  = '#000000';
+  const WHITE  = '#ffffff';
+
+  // Mario pixel art (simplifié, S=3)
+  const S = 3;
+  function drawMarioPx(mx, my) {
+    const r='#e52521', sk='#fcd8a0', b='#0000e0', br='#702000';
+    const p=(x,y,w,h,c)=>{ctx2.fillStyle=c;ctx2.fillRect(Math.round(mx+x),Math.round(my+y),w,h);};
+    p(3*S,0,6*S,S,r); p(2*S,S,8*S,S,r);
+    p(S,2*S,4*S,S,br); p(S,3*S,9*S,2*S,sk); p(2*S,5*S,8*S,S,sk);
+    p(2*S,3*S,2*S,S,BLACK); p(6*S,3*S,2*S,S,BLACK);
+    p(S,5*S,9*S,S,br); p(0,6*S,5*S,S,br); p(6*S,6*S,5*S,S,br);
+    p(0,7*S,11*S,3*S,r);
+    p(S,10*S,9*S,S,b); p(0,11*S,11*S,2*S,b);
+    p(2*S,10*S,2*S,S,r); p(7*S,10*S,2*S,S,r);
+    p(S,13*S,4*S,3*S,b); p(6*S,13*S,4*S,3*S,b);
+    p(0,14*S,5*S,2*S,br); p(6*S,14*S,5*S,2*S,br);
+  }
+
+  // Tuyau centré
+  const PW = 96, PH = H * 0.55;
+  const PX = CX - PW/2;
+  const PY = H - 64 - PH;
+
+  function drawScene(marioX, marioY, pipeReveal) {
+    // Ciel
+    ctx2.fillStyle = SKY; ctx2.fillRect(0, 0, W, H);
+    // Sol
+    ctx2.fillStyle = GROUND; ctx2.fillRect(0, H-64, W, 64);
+    ctx2.fillStyle = '#e86018'; ctx2.fillRect(0, H-64, W, 6);
+    ctx2.fillStyle = '#6c2800'; ctx2.fillRect(0, H-5, W, 5);
+
+    // Nuages décoratifs
+    ctx2.fillStyle = WHITE;
+    [[W*0.15,60],[W*0.7,45],[W*0.45,80]].forEach(([cx,cy])=>{
+      ctx2.beginPath(); ctx2.arc(cx,cy,22,0,Math.PI*2); ctx2.fill();
+      ctx2.beginPath(); ctx2.arc(cx+28,cy+5,16,0,Math.PI*2); ctx2.fill();
+      ctx2.beginPath(); ctx2.arc(cx-20,cy+8,14,0,Math.PI*2); ctx2.fill();
+      ctx2.fillRect(cx-20,cy+8,68,18);
+    });
+
+    // Tuyau (reveal progressif de haut en bas selon pipeReveal 0→1)
+    const visibleH = PH * pipeReveal;
+    const py = H - 64 - visibleH;
+    if (visibleH > 0) {
+      // Corps
+      ctx2.fillStyle = PIPE_G; ctx2.fillRect(PX+4, py+40, PW-8, visibleH-40);
+      ctx2.fillStyle = PIPE_L; ctx2.fillRect(PX+4, py+40, 10, visibleH-40);
+      ctx2.fillStyle = PIPE_D; ctx2.fillRect(PX+PW-12, py+40, 8, visibleH-40);
+      // Bordure noire
+      ctx2.strokeStyle = BLACK; ctx2.lineWidth = 3;
+      ctx2.strokeRect(PX+4, py+40, PW-8, visibleH-40);
+      // Chapeau
+      ctx2.fillStyle = PIPE_G; ctx2.fillRect(PX, py, PW, 40);
+      ctx2.fillStyle = PIPE_L; ctx2.fillRect(PX, py, 8, 40);
+      ctx2.fillStyle = PIPE_D; ctx2.fillRect(PX+PW-10, py, 10, 40);
+      ctx2.strokeRect(PX, py, PW, 40);
+      // Label CRP
+      ctx2.save(); ctx2.font="bold 8px 'Press Start 2P',monospace";
+      ctx2.fillStyle='#90caf9'; ctx2.textAlign='center';
+      ctx2.fillText('CRP', PX+PW/2, py+26);
+      ctx2.restore();
+    }
+
+    // Mario
+    drawMarioPx(marioX, marioY);
+  }
+
+  // ── PHASE A : Mario court vers le tuyau ──
+  let phase = 'run';
+  let marioX = -50;
+  let marioY = H - 64 - 48;
+  let pipeReveal = 1;
+  let sinkY = 0;       // combien Mario a descendu dans le tuyau
+  let circleR = 0;
+  let ft = 0;
+
+  // Sons
+  playTone(523,'square',0.15,0.18,0);
+  playTone(659,'square',0.15,0.18,0.18);
+
+  function animPipe(ts) {
+    ft++;
+    ctx2.clearRect(0,0,W,H);
+
+    if (phase === 'run') {
+      // Mario court vers le centre du tuyau
+      marioX += 4.5;
+      const targetX = CX - 16;
+      drawScene(marioX, marioY, pipeReveal);
+
+      if (marioX >= targetX) {
+        phase = 'sink';
+        // Son d'entrée dans le tuyau
+        playTone(392,'square',0.1,0.15,0);
+        playTone(330,'square',0.1,0.15,0.15);
+        playTone(262,'square',0.15,0.15,0.3);
+      }
+
+    } else if (phase === 'sink') {
+      // Mario descend dans le tuyau
+      sinkY += 3;
+      const my = marioY + sinkY;
+      drawScene(marioX, my, pipeReveal);
+
+      // Masquer Mario sous le bord du tuyau
+      ctx2.fillStyle = PIPE_G;
+      ctx2.fillRect(PX+4, H-64-PH+40, PW-8, PH);
+      ctx2.fillStyle = PIPE_G;
+      ctx2.fillRect(PX, H-64-PH, PW, 40);
+      ctx2.fillStyle = PIPE_L; ctx2.fillRect(PX, H-64-PH, 8, 40);
+      ctx2.fillStyle = PIPE_D; ctx2.fillRect(PX+PW-10, H-64-PH, 10, 40);
+      ctx2.strokeStyle=BLACK; ctx2.lineWidth=3;
+      ctx2.strokeRect(PX, H-64-PH, PW, 40);
+      ctx2.save(); ctx2.font="bold 8px 'Press Start 2P',monospace";
+      ctx2.fillStyle='#90caf9'; ctx2.textAlign='center';
+      ctx2.fillText('CRP', CX, H-64-PH+26); ctx2.restore();
+
+      if (sinkY > 80) {
+        phase = 'wipe';
+        circleR = 0;
+      }
+
+    } else if (phase === 'wipe') {
+      // Cercle noir qui s'agrandit depuis le tuyau (iris wipe)
+      drawScene(marioX, marioY + sinkY, pipeReveal);
+      const tpCX = CX, tpCY = H - 64 - PH/2;
+      const maxR  = Math.sqrt(W*W + H*H);
+      circleR = Math.min(circleR + 28, maxR);
+
+      ctx2.save();
+      ctx2.fillStyle = BLACK;
+      ctx2.beginPath();
+      ctx2.rect(0, 0, W, H);
+      ctx2.arc(tpCX, tpCY, circleR, 0, Math.PI*2, true);
+      ctx2.fill('evenodd');
+      ctx2.restore();
+
+      if (circleR >= maxR) {
+        canvas.style.display = 'none';
+        onDone();
+        return;
+      }
+    }
+
+    requestAnimationFrame(animPipe);
+  }
+  requestAnimationFrame(animPipe);
+}
+
+function runWorldClear(score, onDone) {
+  const overlay = document.getElementById('world-clear-overlay');
+  overlay.style.display = 'flex';
+
+  const wcScore  = document.getElementById('wc-score');
+  const wcCoins  = document.getElementById('wc-coins');
+  const wcTime   = document.getElementById('wc-time');
+  const wcTitle  = document.getElementById('wc-title');
+  const stars    = document.querySelectorAll('.wc-star');
+
+  // Animer le titre qui clignote
+  let titleBlink = 0;
+  const blinkId = setInterval(() => {
+    titleBlink++;
+    wcTitle.style.opacity = titleBlink % 2 === 0 ? '1' : '0.15';
+  }, 220);
+
+  // Étoiles qui s'allument une par une
+  setTimeout(() => {
+    stars.forEach((s, i) => {
+      setTimeout(() => {
+        s.style.opacity = '1';
+        s.style.color   = '#f8b800';
+        s.style.textShadow = '0 0 12px #f8b800, 2px 2px 0 #000';
+        s.style.transition = 'all 0.2s';
+        playTone(880 + i*110, 'square', 0.15, 0.18, 0);
+      }, i * 350);
+    });
+  }, 400);
+
+  // Score qui défile
+  let displayedScore = 0;
+  const target = score;
+  const startTime = performance.now();
+  const duration  = 1800;
+
+  function animScore(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1-t, 2);
+    displayedScore = Math.round(eased * target);
+    wcScore.textContent = String(displayedScore).padStart(6, '0');
+    wcCoins.textContent = 'x' + String(Math.floor(displayedScore / 200)).padStart(2,'0');
+    wcTime.textContent  = String(Math.max(0, Math.floor((1 - t) * 300))).padStart(3,'0');
+
+    if (t < 1) requestAnimationFrame(animScore);
+    else {
+      wcScore.textContent = String(target).padStart(6,'0');
+      wcTime.textContent  = '000';
+    }
+  }
+
+  // Son de score qui défile
+  const scoreBeepId = setInterval(() => {
+    playTone(523, 'square', 0.06, 0.1, 0);
+  }, 60);
+
+  requestAnimationFrame(animScore);
+
+  setTimeout(() => {
+    clearInterval(scoreBeepId);
+  }, duration);
+
+  // Fanfare finale
+  setTimeout(() => {
+    clearInterval(blinkId);
+    wcTitle.style.opacity = '1';
+    soundLevelClear();
+  }, 2400);
+
+  // Transition vers la vidéo
+  setTimeout(() => {
+    overlay.style.transition = 'opacity 0.6s';
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      overlay.style.opacity = '1';
+      overlay.style.transition = '';
+      // Reset stars
+      stars.forEach(s => { s.style.opacity='0.2'; s.style.color=''; s.style.textShadow=''; });
+      onDone();
+    }, 600);
+  }, 3800);
+}
+
 function showRevelationVideo() {
   showScreen('video');
 
   const vType = config.revelationVideoType;
   const vId   = config.revelationVideoId;
 
-  DOM.videoPlayOverlay.style.display = 'flex';
+  // Masquer le play overlay au départ (il s'affiche après World Clear)
+  DOM.videoPlayOverlay.style.display = 'none';
   if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
 
   DOM.videoPlayerRevelation.style.display = 'none';
@@ -2458,87 +2760,76 @@ function showRevelationVideo() {
   DOM.ytPlayerRevelationPlaceholder.style.display = 'none';
   if (ytPlayerRevelation) { try { ytPlayerRevelation.destroy(); } catch(e){} ytPlayerRevelation = null; }
 
-  showSourceBadge(vType);
-
   const onEnded = () => {
     if (ytPlayerRevelation) { try { ytPlayerRevelation.destroy(); } catch(e){} ytPlayerRevelation = null; }
     showThemeRevelationScreen();
   };
 
-  const play = () => {
-    DOM.videoPlayOverlay.style.display = 'none';
+  const launchVideo = () => {
+    // Afficher le bouton play après World Clear
+    DOM.videoPlayOverlay.style.display = 'flex';
 
-    if (vType === "cloudinary-embed") {
-      const placeholder = DOM.ytPlayerRevelationPlaceholder;
-      placeholder.style.display = 'block';
-      placeholder.innerHTML = '';
+    const play = () => {
+      DOM.videoPlayOverlay.style.display = 'none';
 
-      const embedUrl = vId + (vId.includes('?') ? '&' : '?')
-        + 'autoplay=true&controls=false&muted=false&loop=false&playsinline=true';
-
-      const iframe = document.createElement('iframe');
-      iframe.src = embedUrl;
-      iframe.width = '100%'; iframe.height = '100%';
-      iframe.style.border = 'none'; iframe.style.display = 'block';
-      iframe.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
-      iframe.allowFullscreen = false;
-
-      if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
-      iframe.addEventListener('load', () => {
-        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
-      });
-      placeholder.appendChild(iframe);
-
-      let triggered = false;
-      const triggerTheme = () => {
-        if (triggered) return;
-        triggered = true;
+      if (vType === "cloudinary-embed") {
+        const placeholder = DOM.ytPlayerRevelationPlaceholder;
+        placeholder.style.display = 'block';
         placeholder.innerHTML = '';
-        placeholder.style.display = 'none';
-        onEnded();
-      };
-
-      const endTimer = setTimeout(triggerTheme, 25 * 1000);
-      window.addEventListener('message', function onCldMsg(e) {
-        if (!e.data) return;
-        try {
-          const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-          if (msg.event === 'ended' || msg.type === 'ended') {
-            clearTimeout(endTimer);
-            window.removeEventListener('message', onCldMsg);
-            triggerTheme();
-          }
-        } catch(err) {}
-      });
-    }
-    else if (vType === "cloudinary" || vType === "direct") {
-      if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
-      const vid = DOM.videoPlayerRevelation;
-      vid.style.display = 'block';
-      vid.style.width = '100%'; vid.style.height = '100%';
-      vid.style.objectFit = 'contain';
-      vid.src = vId; vid.load();
-      vid.addEventListener('canplay', () => { if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none'; }, { once: true });
-      vid.play().catch(() => onEnded());
-      bindVideoTrigger(vid, onEnded);
-    }
-    else if (vType === "youtube") {
-      ensureYTReady().then(() => {
-        DOM.ytPlayerRevelationPlaceholder.style.display = 'block';
-        ytPlayerRevelation = new YT.Player('yt-player-revelation', {
-          height: '100%', width: '100%', videoId: vId,
-          playerVars: { autoplay:1, controls:1, modestbranding:1, rel:0, playsinline:1 },
-          events: {
-            onReady: e => e.target.playVideo(),
-            onStateChange: e => { if (e.data === YT.PlayerState.ENDED) onEnded(); }
-          }
+        const embedUrl = vId + (vId.includes('?') ? '&' : '?')
+          + 'autoplay=true&controls=false&muted=false&loop=false&playsinline=true';
+        const iframe = document.createElement('iframe');
+        iframe.src = embedUrl; iframe.width='100%'; iframe.height='100%';
+        iframe.style.border='none'; iframe.style.display='block';
+        iframe.allow='autoplay; fullscreen; encrypted-media; picture-in-picture';
+        iframe.allowFullscreen = false;
+        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
+        iframe.addEventListener('load', () => {
+          if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
         });
-      });
-    }
+        placeholder.appendChild(iframe);
+        let triggered = false;
+        const triggerTheme = () => { if(triggered)return; triggered=true; placeholder.innerHTML=''; placeholder.style.display='none'; onEnded(); };
+        const endTimer = setTimeout(triggerTheme, 25*1000);
+        window.addEventListener('message', function onCldMsg(e) {
+          if (!e.data) return;
+          try {
+            const msg = typeof e.data==='string' ? JSON.parse(e.data) : e.data;
+            if (msg.event==='ended'||msg.type==='ended') { clearTimeout(endTimer); window.removeEventListener('message',onCldMsg); triggerTheme(); }
+          } catch(err){}
+        });
+      }
+      else if (vType==="cloudinary"||vType==="direct") {
+        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display='flex';
+        const vid = DOM.videoPlayerRevelation;
+        vid.style.display='block'; vid.style.width='100%'; vid.style.height='100%'; vid.style.objectFit='contain';
+        vid.src=vId; vid.load();
+        vid.addEventListener('canplay',()=>{if(DOM.videoLoadingSpinner)DOM.videoLoadingSpinner.style.display='none';},{once:true});
+        vid.play().catch(()=>onEnded());
+        bindVideoTrigger(vid, onEnded);
+      }
+      else if (vType==="youtube") {
+        ensureYTReady().then(()=>{
+          DOM.ytPlayerRevelationPlaceholder.style.display='block';
+          ytPlayerRevelation = new YT.Player('yt-player-revelation', {
+            height:'100%', width:'100%', videoId:vId,
+            playerVars:{autoplay:1,controls:1,modestbranding:1,rel:0,playsinline:1},
+            events:{onReady:e=>e.target.playVideo(), onStateChange:e=>{if(e.data===YT.PlayerState.ENDED)onEnded();}}
+          });
+        });
+      }
+    };
+
+    DOM.videoPlayOverlay.onclick = play;
+    if (DOM.btnStartVideo) DOM.btnStartVideo.onclick = e => { e.stopPropagation(); play(); };
   };
 
-  DOM.videoPlayOverlay.onclick = play;
-  if (DOM.btnStartVideo) DOM.btnStartVideo.onclick = e => { e.stopPropagation(); play(); };
+  // ── Séquence : Tuyau → World Clear → Vidéo ──
+  runPipeTransition(state.score, () => {
+    runWorldClear(state.score, () => {
+      launchVideo();
+    });
+  });
 }
 
 // ==========================================================================
