@@ -711,13 +711,7 @@ function setupEventListeners() {
   DOM.btnShareScore.addEventListener('click', shareScore);
   DOM.btnGoToResults.addEventListener('click', endGame);
   DOM.btnRestartGame.addEventListener('click', () => { stopEndingVideo(); initGame(); });
-  DOM.btnClearScores.addEventListener('click', () => {
-    const mode = (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") ? "Google Sheets" : "Local Storage";
-    if (confirm(`Réinitialiser tous les scores ? (${mode})`)) {
-      if (mode === "Local Storage") { localStorage.removeItem('synapse_leaderboard'); renderLeaderboardView(); }
-      else alert("Réinitialisation Google Sheets : à faire directement dans le fichier Sheets.");
-    }
-  });
+  // Bouton reset supprimé
 }
 
 document.addEventListener('DOMContentLoaded', () => {
