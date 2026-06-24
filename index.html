@@ -1657,7 +1657,7 @@ const MAX_QUESTIONS = 10;
 const state = {
   playerName: '',
   score: 0,
-  displayedScore: 0,       // score affiché (animé)
+  displayedScore: 0,
   scoreAnimId: null,
   currentQuestionIndex: 0,
   timerSecondsRemaining: 0,
@@ -1666,7 +1666,9 @@ const state = {
   leaderboardRefreshId: null,
   cluesShownCount: 1,
   activeQuestion: null,
-  leaderboard: []
+  leaderboard: [],
+  gameStartTime: null,     // timestamp debut de partie
+  totalTimeSeconds: 0      // duree totale en secondes
 };
 
 let ytPlayerRevelation = null;
@@ -1985,13 +1987,19 @@ function sendScore(name, score, cb) {
   }
 }
 
-function saveScoreLocal(name, score, cb) {
+function saveScoreLocal(name, score, totalTime, cb) {
   loadLocalLeaderboard(() => {
     state.leaderboard.push({
-      playerName: name, score,
+      playerName: name,
+      score: score,
+      totalTime: totalTime || 9999,
       date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
     });
-    state.leaderboard.sort((a, b) => b.score - a.score);
+    // Trier : score décroissant, à égalité temps croissant
+    state.leaderboard.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return (a.totalTime || 9999) - (b.totalTime || 9999);
+    });
     state.leaderboard = state.leaderboard.slice(0, 10);
     localStorage.setItem('synapse_leaderboard', JSON.stringify(state.leaderboard));
     cb && cb(state.leaderboard);
@@ -2006,16 +2014,35 @@ function renderLeaderboardView() {
       DOM.leaderboardTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Aucun score. Soyez le premier !</td></tr>`;
       return;
     }
+    let lastScore = null;
+    let lastRank  = 0;
+
     list.forEach((e, i) => {
       const row = document.createElement('tr');
-      const medals = ['1', '2', '3'];
-      const rank = i < 3 ? medals[i] : (i + 1);
+
+      // Calcul du rang avec ex-aequo
+      let rank;
+      if (e.score === lastScore) {
+        // Même score = même rang, ex-aequo
+        rank = `${lastRank} EX`;
+      } else {
+        lastRank  = i + 1;
+        lastScore = e.score;
+        rank = i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : (i + 1);
+      }
+
+      // Formater le temps
+      const t = e.totalTime || 0;
+      const mins = Math.floor(t / 60);
+      const secs = t % 60;
+      const timeStr = t ? `${mins}m${String(secs).padStart(2,'0')}s` : '-';
+
       row.innerHTML = `
-        <td class="rank-cell rank-${i+1}">${rank}</td>
+        <td class="rank-cell rank-${lastRank}">${rank}</td>
         <td style="font-weight:500;color:var(--text-primary);">${escapeHTML(e.playerName)}</td>
         <td style="font-family:var(--font-pixel);color:var(--color-coin-yellow);">${e.score} pts</td>
-        <td style="color:var(--text-muted);">${e.date || 'Recemment'}</td>`;
-      // Surligner le joueur actuel
+        <td style="color:var(--text-muted);font-size:0.5rem;">${timeStr}</td>`;
+
       if (e.playerName === state.playerName) row.classList.add('current-player-row');
       DOM.leaderboardTbody.appendChild(row);
     });
@@ -2052,6 +2079,8 @@ function startPlay() {
   const n = DOM.playerNameInput.value.trim().toUpperCase();
   state.playerName = n || 'ANONYME';
   DOM.gamePlayerName.textContent = state.playerName;
+  state.gameStartTime = Date.now();  // démarrer le chronomètre
+  state.totalTimeSeconds = 0;
   showScreen('game');
   loadQuestion(0);
 }
@@ -2239,7 +2268,9 @@ function handleNextQuestion() {
 
   if (next >= questionsList.length) {
     soundLevelClear();
-    sendScore(state.playerName, state.score, () => {});
+    // Calculer le temps total de la partie
+    state.totalTimeSeconds = Math.round((Date.now() - state.gameStartTime) / 1000);
+    sendScore(state.playerName, state.score, state.totalTimeSeconds, () => {});
     showRevelationVideo();
     return;
   }
