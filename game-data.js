@@ -3,7 +3,7 @@
 // ============================================================
 window.gameData = {
   settings: {
-    googleSheetsUrl: "https://script.google.com/macros/s/AKfycbxT1Rs4am-k6SaX3CGIEyew2AIAA8Ogmwmti73Fhvaswkgnji5Q2Yoy1_6vRTAgko1R/exec",
+    googleSheetsUrl: "https://script.google.com/macros/s/AKfycbyOh1xg06PP-DiouksFKseJsXKi9TPn9F7EL4V-Mqb3ZdKlCQQ7ZxEfqytNUr3sxq4J/exec",
     pointsPerQuestion: 1000,
     timeLimitSeconds: 25,
     themeToReveal: "LE THEME VESTIMENTAIRE DU LUNDI EST REVELE !",
