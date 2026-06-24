@@ -1289,6 +1289,88 @@ body.screen-shake { animation: screenShake 0.5s steps(4, end); }
 #vhud-message { position:absolute; bottom:24px; left:50%; transform:translateX(-50%); font-family:'Press Start 2P',monospace; font-size:0.7rem; color:#f8b800; text-shadow:2px 2px 0 #000,-1px -1px 0 #000; background:rgba(0,0,0,0.8); border:3px solid #f8b800; padding:10px 20px; white-space:nowrap; box-shadow:3px 3px 0 #000; opacity:1; transition:opacity 0.4s; animation:msgBlink 1.5s steps(2) infinite; }
 @keyframes msgBlink { 0%,100%{border-color:#f8b800} 50%{border-color:#e52521} }
 
+
+/* ==========================================================================
+   NOTIFICATION TEMPS REEL — Nouveau score
+   ========================================================================== */
+#new-player-notif {
+  position: fixed;
+  bottom: 24px;
+  right: -380px;    /* caché hors écran */
+  width: 320px;
+  background: #000000;
+  border: 4px solid #f8b800;
+  box-shadow: 6px 6px 0 #000, inset -3px -3px 0 #b86000;
+  z-index: 9999;
+  cursor: pointer;
+  transition: right 0.4s steps(6, end);
+  padding: 0;
+  overflow: hidden;
+}
+
+#new-player-notif.notif-visible {
+  right: 24px;   /* slide in */
+}
+
+.notif-header {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: #000;
+  background: #f8b800;
+  padding: 6px 12px;
+  letter-spacing: 2px;
+}
+
+.notif-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notif-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.75rem;
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.notif-score {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.65rem;
+  color: #f8b800;
+}
+
+.notif-time {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  color: #aaaaaa;
+}
+
+/* Barre de progression qui se vide en 5s */
+.notif-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  width: 100%;
+}
+
+.notif-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: #f8b800;
+  animation: notifCountdown 5s linear forwards;
+}
+
+@keyframes notifCountdown {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* Icône Mario dans la notif */
+.notif-header::before {
+  content: '* ';
+  color: #000;
+}
   </style>
 </head>
 <body>
@@ -1675,6 +1757,98 @@ let ytPlayerRevelation = null;
 let ytPlayerEnding     = null;
 
 // ==========================================================================
+// SYSTEME DE NOTIFICATION TEMPS REEL
+// ==========================================================================
+let lastKnownScores = [];   // snapshot du leaderboard pour détecter les nouveaux
+let notifCheckId    = null;
+
+function showNewPlayerNotif(playerName, score, totalTime) {
+  // Supprimer notification existante
+  const existing = document.getElementById('new-player-notif');
+  if (existing) existing.remove();
+
+  const t = totalTime || 0;
+  const mins = Math.floor(t / 60);
+  const secs = t % 60;
+  const timeStr = t ? `${mins}m${String(secs).padStart(2,'0')}s` : '';
+
+  const notif = document.createElement('div');
+  notif.id = 'new-player-notif';
+  notif.innerHTML = `
+    <div class="notif-header">NOUVEAU SCORE !</div>
+    <div class="notif-body">
+      <span class="notif-name">${escapeHTML(playerName)}</span>
+      <span class="notif-score">${score} PTS</span>
+      ${timeStr ? `<span class="notif-time">${timeStr}</span>` : ''}
+    </div>
+    <div class="notif-bar"><div class="notif-bar-fill"></div></div>
+  `;
+  document.body.appendChild(notif);
+
+  // Son NES de notification
+  playTone(523, 'square', 0.08, 0.12, 0);
+  playTone(659, 'square', 0.08, 0.12, 0.1);
+  playTone(784, 'square', 0.08, 0.12, 0.2);
+
+  // Slide in
+  requestAnimationFrame(() => {
+    notif.classList.add('notif-visible');
+  });
+
+  // Auto-hide après 5 secondes
+  setTimeout(() => {
+    notif.classList.remove('notif-visible');
+    setTimeout(() => notif.remove(), 500);
+  }, 5000);
+
+  // Clic pour fermer
+  notif.addEventListener('click', () => {
+    notif.classList.remove('notif-visible');
+    setTimeout(() => notif.remove(), 500);
+  });
+}
+
+function checkForNewScores(list) {
+  if (!list || list.length === 0) return;
+  if (lastKnownScores.length === 0) {
+    // Premier chargement — juste mémoriser sans notifier
+    lastKnownScores = list.map(e => `${e.playerName}-${e.score}`);
+    return;
+  }
+
+  const knownKeys = new Set(lastKnownScores);
+  list.forEach(e => {
+    const key = `${e.playerName}-${e.score}`;
+    if (!knownKeys.has(key)) {
+      // Nouveau score détecté — ne pas notifier le joueur lui-même
+      if (e.playerName !== state.playerName) {
+        showNewPlayerNotif(e.playerName, e.score, e.totalTime);
+      }
+    }
+  });
+
+  lastKnownScores = list.map(e => `${e.playerName}-${e.score}`);
+}
+
+function startRealtimeCheck() {
+  stopRealtimeCheck();
+  // Vérifier toutes les 15 secondes
+  notifCheckId = setInterval(() => {
+    loadLeaderboard(list => {
+      checkForNewScores(list);
+      // Refresh silencieux du leaderboard si on est sur l'écran résultats
+      if (DOM.screens.results && DOM.screens.results.classList.contains('active')) {
+        renderLeaderboardView(true);
+      }
+    });
+  }, 15000);
+}
+
+function stopRealtimeCheck() {
+  if (notifCheckId) { clearInterval(notifCheckId); notifCheckId = null; }
+}
+
+// ==========================================================================
 // WEB AUDIO ENGINE (sons NES sans fichier externe)
 // ==========================================================================
 let audioCtx = null;
@@ -1946,8 +2120,10 @@ function loadLeaderboard(cb) {
     window[callbackName] = function(data) {
       delete window[callbackName];
       try { document.body.removeChild(script); } catch(e){}
-      if (Array.isArray(data)) { state.leaderboard = data; cb && cb(data); }
-      else loadLocalLeaderboard(cb);
+      if (Array.isArray(data)) {
+        state.leaderboard = data;
+        cb && cb(data);
+      } else loadLocalLeaderboard(cb);
     };
 
     const timeout = setTimeout(() => {
@@ -2074,16 +2250,18 @@ function initGame() {
   stopLeaderboardAutoRefresh();
   showScreen('welcome');
   renderLeaderboardView();
+  startRealtimeCheck(); // surveiller les scores dès l accueil
 }
 
 function startPlay() {
   const n = DOM.playerNameInput.value.trim().toUpperCase();
   state.playerName = n || 'ANONYME';
   DOM.gamePlayerName.textContent = state.playerName;
-  state.gameStartTime = Date.now();  // démarrer le chronomètre
+  state.gameStartTime = Date.now();
   state.totalTimeSeconds = 0;
   showScreen('game');
   loadQuestion(0);
+  startRealtimeCheck(); // démarrer la surveillance des nouveaux scores
 }
 
 function loadQuestion(index) {
@@ -2497,6 +2675,8 @@ function setupEventListeners() {
   DOM.btnRestartGame.addEventListener('click', () => {
     stopEndingVideo();
     stopLeaderboardAutoRefresh();
+    stopRealtimeCheck();
+    lastKnownScores = [];
     initGame();
   });
 }
