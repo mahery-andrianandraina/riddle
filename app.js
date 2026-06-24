@@ -1,5 +1,14 @@
 // ==========================================================================
 // app.js  —  Super Mario Quiz : Qui Suis-Je ?
+// Fonctionnalités spectaculaires :
+//  - Sons NES (Web Audio API, aucun fichier externe)
+//  - Compteur de score animé
+//  - Timer d'alerte (clignotement + bip)
+//  - Confettis pixel art sur bonne réponse
+//  - Tremblement d'écran sur mauvaise réponse
+//  - Mario qui réagit (saute sur bonne, tombe sur mauvaise)
+//  - Transition "NEXT PLAYER" entre joueurs
+//  - Leaderboard auto-refresh toutes les 10s
 // ==========================================================================
 
 const gameData    = window.gameData;
@@ -13,10 +22,13 @@ const MAX_QUESTIONS = 8;
 const state = {
   playerName: '',
   score: 0,
+  displayedScore: 0,       // score affiché (animé)
+  scoreAnimId: null,
   currentQuestionIndex: 0,
   timerSecondsRemaining: 0,
   timerIntervalId: null,
   clueIntervalId: null,
+  leaderboardRefreshId: null,
   cluesShownCount: 1,
   activeQuestion: null,
   leaderboard: []
@@ -24,6 +36,72 @@ const state = {
 
 let ytPlayerRevelation = null;
 let ytPlayerEnding     = null;
+
+// ==========================================================================
+// WEB AUDIO ENGINE (sons NES sans fichier externe)
+// ==========================================================================
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, type, duration, volume, delay = 0) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(volume, ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration);
+  } catch(e) {}
+}
+
+function soundCorrect() {
+  // Jingle de bonne réponse NES (do-mi-sol-do)
+  const notes = [[523,0],[659,0.1],[784,0.2],[1047,0.3]];
+  notes.forEach(([f,d]) => playTone(f, 'square', 0.18, 0.18, d));
+}
+
+function soundWrong() {
+  // Son d'erreur descendant
+  playTone(300, 'sawtooth', 0.12, 0.2, 0);
+  playTone(200, 'sawtooth', 0.18, 0.2, 0.12);
+  playTone(150, 'sawtooth', 0.25, 0.18, 0.25);
+}
+
+function soundCoin() {
+  // Son de pièce Mario
+  playTone(988,  'square', 0.08, 0.15, 0);
+  playTone(1319, 'square', 0.12, 0.15, 0.08);
+}
+
+function soundBeep(urgent = false) {
+  // Bip timer (urgent = plus aigu)
+  playTone(urgent ? 880 : 660, 'square', 0.06, 0.12, 0);
+}
+
+function soundLevelClear() {
+  // Fanfare fin de jeu
+  const seq = [
+    [523,0],[523,0.1],[523,0.2],[415,0.3],[523,0.4],
+    [659,0.5],[784,0.7]
+  ];
+  seq.forEach(([f,d]) => playTone(f, 'square', 0.2, 0.2, d));
+}
+
+function soundNextPlayer() {
+  // Jingle "next player"
+  playTone(659, 'square', 0.12, 0.18, 0);
+  playTone(784, 'square', 0.12, 0.18, 0.13);
+  playTone(988, 'square', 0.18, 0.18, 0.26);
+}
 
 // ==========================================================================
 // DOM
@@ -54,7 +132,6 @@ const DOM = {
   feedbackText:             document.getElementById('feedback-text'),
   feedbackPoints:           document.getElementById('feedback-points'),
   btnNextQuestion:          document.getElementById('btn-next-question'),
-  // Vidéo révélation
   videoPlayerRevelation:            document.getElementById('video-player-revelation'),
   ytPlayerRevelationPlaceholder:    document.getElementById('yt-player-revelation'),
   btnSkipVideo:                     document.getElementById('btn-skip-video'),
@@ -66,13 +143,8 @@ const DOM = {
   videoProgressFill:                document.getElementById('video-progress-fill'),
   videoCurrentTime:                 document.getElementById('video-current-time'),
   videoDuration:                    document.getElementById('video-duration'),
-  // Fullscreen video elements
-  videoFullscreenPlayer:            document.getElementById('video-player-revelation'),
-  videoIframeContainer:             document.getElementById('yt-player-revelation'),
-  // Révélation thème
   revealedThemeText: document.getElementById('revealed-theme-text'),
   btnGoToResults:    document.getElementById('btn-go-to-results'),
-  // Résultats
   resultsPlayerName:       document.getElementById('results-player-name'),
   resultsFinalScore:       document.getElementById('results-final-score'),
   resultsRankTitle:        document.getElementById('results-rank-title'),
@@ -81,7 +153,6 @@ const DOM = {
   videoPlayerEnding:       document.getElementById('video-player-ending'),
   ytPlayerEndingPlaceholder: document.getElementById('yt-player-ending'),
   leaderboardTbody:        document.getElementById('leaderboard-tbody'),
-  btnClearScores:          document.getElementById('btn-clear-scores')
 };
 
 // YouTube API
@@ -107,20 +178,19 @@ function showScreen(key) {
   DOM.screens[key] && DOM.screens[key].classList.add('active');
 }
 
-function formatScore(n) { return String(n).padStart(4, '0'); }
+function formatScore(n) { return String(Math.round(n)).padStart(4, '0'); }
 
 function formatTime(sec) {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function getRankBadge(score, max) {
   const r = score / max;
-  if (r >= 0.85) return "Détective d'Or 🕵️‍♂️ (Légendaire)";
-  if (r >= 0.60) return "Agent Spécial 🕵️ (Excellent)";
-  if (r >= 0.35) return "Enquêteur Junior 🧐 (Pas mal)";
-  return "Stagiaire Perdu 🤷‍♂️ (Peut mieux faire)";
+  if (r >= 0.85) return "DETECTIVE D'OR — LEGENDAIRE";
+  if (r >= 0.60) return "AGENT SPECIAL — EXCELLENT";
+  if (r >= 0.35) return "ENQUETEUR JUNIOR — PAS MAL";
+  return "STAGIAIRE PERDU — PEUT MIEUX FAIRE";
 }
 
 function escapeHTML(str) {
@@ -129,12 +199,12 @@ function escapeHTML(str) {
 
 function getCategoryLabel(cat) {
   return {
-    "coworker":    "👤 Collègue",
-    "tool":        "🔧 Outil",
-    "office-life": "🏢 Vie de Bureau",
-    "process":     "⚙️ Process Métier",
-    "personality": "🧠 Personnalité"
-  }[cat] || "❓ Divers";
+    "coworker":    "COLLEGUE",
+    "tool":        "OUTIL",
+    "office-life": "VIE DE BUREAU",
+    "process":     "PROCESS METIER",
+    "personality": "PERSONNALITE"
+  }[cat] || "DIVERS";
 }
 
 function shuffleArray(arr) {
@@ -146,9 +216,91 @@ function shuffleArray(arr) {
 }
 
 // ==========================================================================
+// COMPTEUR DE SCORE ANIME
+// ==========================================================================
+function animateScore(from, to, duration = 800) {
+  cancelAnimationFrame(state.scoreAnimId);
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    const current = Math.round(from + (to - from) * eased);
+    DOM.gameScore.textContent = formatScore(current);
+    state.displayedScore = current;
+    if (t < 1) state.scoreAnimId = requestAnimationFrame(step);
+    else DOM.gameScore.textContent = formatScore(to);
+  }
+  state.scoreAnimId = requestAnimationFrame(step);
+}
+
+// ==========================================================================
+// CONFETTIS PIXEL ART (bonne réponse)
+// ==========================================================================
+function launchConfetti() {
+  const colors = ['#f8b800','#e52521','#00a800','#5c94fc','#ffffff','#fcd8a0'];
+  const container = document.body;
+  for (let i = 0; i < 40; i++) {
+    const el = document.createElement('div');
+    el.style.cssText = `
+      position:fixed;
+      top:-10px;
+      left:${Math.random()*100}vw;
+      width:${6+Math.random()*8}px;
+      height:${6+Math.random()*8}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      z-index:9999;
+      pointer-events:none;
+      animation: confettiFall ${0.8+Math.random()*1.2}s linear forwards;
+      animation-delay:${Math.random()*0.4}s;
+    `;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+  }
+}
+
+// ==========================================================================
+// TREMBLEMENT D'ECRAN (mauvaise réponse)
+// ==========================================================================
+function shakeScreen() {
+  document.body.classList.add('screen-shake');
+  setTimeout(() => document.body.classList.remove('screen-shake'), 500);
+}
+
+// ==========================================================================
+// MARIO REACTION (communique avec mario-bg.js via custom events)
+// ==========================================================================
+function marioReact(type) {
+  // 'correct' = Mario saute de joie, 'wrong' = Mario clignote
+  window.dispatchEvent(new CustomEvent('mario-react', { detail: { type } }));
+}
+
+// ==========================================================================
+// ECRAN "NEXT PLAYER"
+// ==========================================================================
+function showNextPlayerScreen(nextName, callback) {
+  soundNextPlayer();
+  const overlay = document.createElement('div');
+  overlay.id = 'next-player-overlay';
+  overlay.innerHTML = `
+    <div class="next-player-content">
+      <p class="next-player-pre">PROCHAIN JOUEUR</p>
+      <h2 class="next-player-name">${escapeHTML(nextName)}</h2>
+      <p class="next-player-hint">PRET ?</p>
+      <button class="btn btn-primary next-player-btn">JOUER !</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('active'));
+
+  overlay.querySelector('.next-player-btn').addEventListener('click', () => {
+    overlay.classList.remove('active');
+    setTimeout(() => { overlay.remove(); callback(); }, 400);
+  });
+}
+
+// ==========================================================================
 // LEADERBOARD
 // ==========================================================================
-// ── JSONP loader pour contourner CORS avec Google Apps Script ──
 function loadLeaderboard(cb) {
   if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
     const callbackName = 'gsCallback_' + Date.now();
@@ -156,34 +308,21 @@ function loadLeaderboard(cb) {
 
     window[callbackName] = function(data) {
       delete window[callbackName];
-      document.body.removeChild(script);
-      if (Array.isArray(data)) {
-        state.leaderboard = data;
-        cb && cb(data);
-      } else {
-        loadLocalLeaderboard(cb);
-      }
+      try { document.body.removeChild(script); } catch(e){}
+      if (Array.isArray(data)) { state.leaderboard = data; cb && cb(data); }
+      else loadLocalLeaderboard(cb);
     };
 
-    // Timeout fallback si Apps Script ne répond pas
     const timeout = setTimeout(() => {
       if (window[callbackName]) {
         delete window[callbackName];
-        try { document.body.removeChild(script); } catch(e) {}
+        try { document.body.removeChild(script); } catch(e){}
         loadLocalLeaderboard(cb);
       }
     }, 5000);
 
-    script.onerror = () => {
-      clearTimeout(timeout);
-      delete window[callbackName];
-      loadLocalLeaderboard(cb);
-    };
-
-    script.src = config.googleSheetsUrl
-      + '?action=get&callback=' + callbackName
-      + '&t=' + Date.now(); // cache-bust
-
+    script.onerror = () => { clearTimeout(timeout); delete window[callbackName]; loadLocalLeaderboard(cb); };
+    script.src = config.googleSheetsUrl + '?action=get&callback=' + callbackName + '&t=' + Date.now();
     document.body.appendChild(script);
   } else {
     loadLocalLeaderboard(cb);
@@ -198,26 +337,14 @@ function loadLocalLeaderboard(cb) {
 
 function sendScore(name, score, cb) {
   if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
-
-    // 1. Afficher immédiatement le score local dans le leaderboard
     saveScoreLocal(name, score, cb);
-
-    // 2. Envoyer en arrière-plan au Google Sheet (sans bloquer l'UI)
     fetch(config.googleSheetsUrl, {
-      method: 'POST',
-      mode: 'no-cors',
+      method: 'POST', mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ playerName: name, score: score })
+      body: JSON.stringify({ playerName: name, score })
     })
-    .then(() => {
-      // Rafraîchir depuis GS après écriture (silencieux, met à jour en fond)
-      setTimeout(() => loadLeaderboard(renderLeaderboardView), 1000);
-    })
-    .catch(() => {
-      // Déjà affiché en local, rien de plus à faire
-      console.warn("Envoi GS échoué, score conservé en local.");
-    });
-
+    .then(() => setTimeout(() => loadLeaderboard(renderLeaderboardView), 1000))
+    .catch(() => console.warn("Envoi GS échoué, score conservé en local."));
   } else {
     saveScoreLocal(name, score, cb);
   }
@@ -237,7 +364,7 @@ function saveScoreLocal(name, score, cb) {
 }
 
 function renderLeaderboardView() {
-  DOM.leaderboardTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Chargement…</td></tr>`;
+  DOM.leaderboardTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Chargement...</td></tr>`;
   loadLeaderboard(list => {
     DOM.leaderboardTbody.innerHTML = '';
     if (!list || list.length === 0) {
@@ -246,18 +373,30 @@ function renderLeaderboardView() {
     }
     list.forEach((e, i) => {
       const row = document.createElement('tr');
-      let rank = i + 1;
-      if (i === 0) rank = '🥇';
-      else if (i === 1) rank = '🥈';
-      else if (i === 2) rank = '🥉';
+      const medals = ['1', '2', '3'];
+      const rank = i < 3 ? medals[i] : (i + 1);
       row.innerHTML = `
-        <td>${rank}</td>
+        <td class="rank-cell rank-${i+1}">${rank}</td>
         <td style="font-weight:500;color:var(--text-primary);">${escapeHTML(e.playerName)}</td>
         <td style="font-family:var(--font-pixel);color:var(--color-coin-yellow);">${e.score} pts</td>
-        <td style="font-size:0.8rem;color:var(--text-muted);">${e.date || 'Récemment'}</td>`;
+        <td style="color:var(--text-muted);">${e.date || 'Recemment'}</td>`;
+      // Surligner le joueur actuel
+      if (e.playerName === state.playerName) row.classList.add('current-player-row');
       DOM.leaderboardTbody.appendChild(row);
     });
   });
+}
+
+// Auto-refresh leaderboard toutes les 10s sur l'écran résultats
+function startLeaderboardAutoRefresh() {
+  stopLeaderboardAutoRefresh();
+  state.leaderboardRefreshId = setInterval(() => {
+    if (DOM.screens.results.classList.contains('active')) renderLeaderboardView();
+  }, 10000);
+}
+
+function stopLeaderboardAutoRefresh() {
+  if (state.leaderboardRefreshId) clearInterval(state.leaderboardRefreshId);
 }
 
 // ==========================================================================
@@ -266,8 +405,10 @@ function renderLeaderboardView() {
 function initGame() {
   questionsList = gameData.getShuffledQuestions(MAX_QUESTIONS);
   state.score = 0;
+  state.displayedScore = 0;
   state.currentQuestionIndex = 0;
   DOM.gameScore.textContent = formatScore(0);
+  stopLeaderboardAutoRefresh();
   showScreen('welcome');
   renderLeaderboardView();
 }
@@ -287,12 +428,12 @@ function loadQuestion(index) {
   state.timerSecondsRemaining = config.timeLimitSeconds;
 
   DOM.gameProgressFill.style.width    = `${(index / questionsList.length) * 100}%`;
-  DOM.gameQuestionNumber.textContent  = `Question ${index + 1} / ${questionsList.length}`;
+  DOM.gameQuestionNumber.textContent  = `QUESTION ${index + 1} / ${questionsList.length}`;
   DOM.gameQuestionCategory.textContent = getCategoryLabel(state.activeQuestion.category);
-  DOM.riddleTitle.textContent         = state.activeQuestion.title || "Qui suis-je ?";
+  DOM.riddleTitle.textContent         = state.activeQuestion.title || "QUI SUIS-JE ?";
   DOM.cluesContainer.innerHTML        = '';
 
-  // Options (ordre aléatoire)
+  // Options mélangées
   const options = shuffleArray([...state.activeQuestion.options]);
   DOM.optionsButtonsContainer.innerHTML = '';
   options.forEach((opt, idx) => {
@@ -307,6 +448,7 @@ function loadQuestion(index) {
   revealClue(0);
   updateTimerVisual(config.timeLimitSeconds, config.timeLimitSeconds);
   DOM.timerProgress.classList.remove('warning');
+  DOM.gameTimerSeconds.classList.remove('timer-urgent');
   startTimer();
   startClueTriggers();
 }
@@ -318,18 +460,31 @@ function revealClue(idx) {
   DOM.cluesContainer.querySelectorAll('.clue-item').forEach(c => c.classList.remove('active'));
   const el = document.createElement('div');
   el.className = 'clue-item active';
-  el.innerHTML = `<span class="clue-label">Indice ${idx + 1}</span><p>${text}</p>`;
+  el.style.animationDelay = '0s';
+  el.innerHTML = `<span class="clue-label">INDICE ${idx + 1}</span><p>${text}</p>`;
   DOM.cluesContainer.appendChild(el);
+  soundCoin();
 }
 
+// ==========================================================================
+// TIMER AVEC BIPS D'ALERTE
+// ==========================================================================
 function startTimer() {
   clearInterval(state.timerIntervalId);
   DOM.gameTimerSeconds.textContent = state.timerSecondsRemaining;
+
   state.timerIntervalId = setInterval(() => {
     state.timerSecondsRemaining--;
     DOM.gameTimerSeconds.textContent = state.timerSecondsRemaining;
     updateTimerVisual(state.timerSecondsRemaining, config.timeLimitSeconds);
-    if (state.timerSecondsRemaining <= 5) DOM.timerProgress.classList.add('warning');
+
+    // Alerte visuelle + sonore à 5 secondes
+    if (state.timerSecondsRemaining <= 5) {
+      DOM.timerProgress.classList.add('warning');
+      DOM.gameTimerSeconds.classList.add('timer-urgent');
+      soundBeep(state.timerSecondsRemaining <= 3); // bips plus urgents à 3s
+    }
+
     if (state.timerSecondsRemaining <= 0) handleTimeOut();
   }, 1000);
 }
@@ -361,6 +516,9 @@ function calculateScore(timeLeft, cluesShown) {
   return Math.max(100, Math.round(base * (0.6 + 0.4 * timeLeft / config.timeLimitSeconds)));
 }
 
+// ==========================================================================
+// GESTION DES REPONSES
+// ==========================================================================
 function handleAnswerSelect(selected, buttonEl) {
   stopQuestionIntervals();
   const isCorrect = selected === state.activeQuestion.correctAnswer;
@@ -369,169 +527,156 @@ function handleAnswerSelect(selected, buttonEl) {
   DOM.optionsButtonsContainer.querySelectorAll('.btn-option').forEach(btn => {
     btn.disabled = true;
     if (btn.textContent === state.activeQuestion.correctAnswer) {
-      btn.style.background = 'rgba(16,185,129,0.2)';
+      btn.style.background  = 'rgba(16,185,129,0.25)';
       btn.style.borderColor = 'var(--color-green)';
-      btn.style.boxShadow   = '0 0 10px rgba(16,185,129,0.3)';
+      btn.style.boxShadow   = '0 0 0 3px rgba(16,185,129,0.4), 3px 3px 0 #000';
     } else if (btn === buttonEl && !isCorrect) {
-      btn.style.background = 'rgba(239,68,68,0.2)';
+      btn.style.background  = 'rgba(239,68,68,0.25)';
       btn.style.borderColor = 'var(--color-red)';
-      btn.style.boxShadow   = '0 0 10px rgba(239,68,68,0.3)';
-      DOM.riddleTitle.classList.add('shake');
+      btn.style.boxShadow   = '0 0 0 3px rgba(239,68,68,0.4), 3px 3px 0 #000';
     }
   });
 
   if (isCorrect) {
     pts = calculateScore(state.timerSecondsRemaining, state.cluesShownCount);
+    const prevScore = state.score;
     state.score += pts;
-    DOM.gameScore.textContent = formatScore(state.score);
+    soundCorrect();
+    launchConfetti();
+    marioReact('correct');
+    animateScore(prevScore, state.score);
+  } else {
+    soundWrong();
+    shakeScreen();
+    marioReact('wrong');
+    DOM.riddleTitle.classList.add('shake');
   }
 
   setTimeout(() => {
     DOM.riddleTitle.classList.remove('shake');
     DOM.feedbackOverlay.className = 'feedback-overlay';
+
     if (isCorrect) {
       DOM.feedbackOverlay.classList.add('correct');
-      DOM.feedbackIcon.textContent   = '✅';
-      DOM.feedbackTitle.textContent  = 'Bonne réponse !';
+      DOM.feedbackIcon.textContent   = '+';
+      DOM.feedbackTitle.textContent  = 'BONNE REPONSE !';
       DOM.feedbackTitle.style.color  = 'var(--color-green)';
-      DOM.feedbackPoints.textContent = `+${pts} pts`;
+      DOM.feedbackPoints.textContent = `+${pts} PTS`;
     } else {
       DOM.feedbackOverlay.classList.add('incorrect');
-      DOM.feedbackIcon.textContent   = '❌';
-      DOM.feedbackTitle.textContent  = 'Incorrect !';
+      DOM.feedbackIcon.textContent   = 'X';
+      DOM.feedbackTitle.textContent  = 'INCORRECT !';
       DOM.feedbackTitle.style.color  = 'var(--color-red)';
-      DOM.feedbackPoints.textContent = '0 pts';
+      DOM.feedbackPoints.textContent = '0 PTS';
     }
-    DOM.feedbackText.innerHTML = `La bonne réponse était <strong>${state.activeQuestion.correctAnswer}</strong>.<br><br>💡 <em>${state.activeQuestion.funFact || ''}</em>`;
+
+    DOM.feedbackText.innerHTML = `La bonne reponse etait <strong>${state.activeQuestion.correctAnswer}</strong>.<br><br>${state.activeQuestion.funFact || ''}`;
     DOM.feedbackOverlay.classList.add('active');
   }, 600);
 }
 
 function handleTimeOut() {
   stopQuestionIntervals();
+  soundWrong();
+  shakeScreen();
+  marioReact('wrong');
+
   DOM.optionsButtonsContainer.querySelectorAll('.btn-option').forEach(btn => {
     btn.disabled = true;
     if (btn.textContent === state.activeQuestion.correctAnswer) {
-      btn.style.background = 'rgba(16,185,129,0.2)';
+      btn.style.background  = 'rgba(16,185,129,0.25)';
       btn.style.borderColor = 'var(--color-green)';
     }
   });
+
   DOM.feedbackOverlay.className = 'feedback-overlay incorrect';
-  DOM.feedbackIcon.textContent   = '⏰';
-  DOM.feedbackTitle.textContent  = 'Temps écoulé !';
+  DOM.feedbackIcon.textContent   = '!';
+  DOM.feedbackTitle.textContent  = 'TEMPS ECOULE !';
   DOM.feedbackTitle.style.color  = 'var(--color-red)';
-  DOM.feedbackPoints.textContent = '0 pts';
-  DOM.feedbackText.innerHTML     = `Vous avez manqué de temps. La bonne réponse était <strong>${state.activeQuestion.correctAnswer}</strong>.`;
+  DOM.feedbackPoints.textContent = '0 PTS';
+  DOM.feedbackText.innerHTML     = `Vous avez manque de temps. La bonne reponse etait <strong>${state.activeQuestion.correctAnswer}</strong>.`;
   DOM.feedbackOverlay.classList.add('active');
 }
 
 function handleNextQuestion() {
   DOM.feedbackOverlay.classList.remove('active');
   const next = state.currentQuestionIndex + 1;
+
   if (next >= questionsList.length) {
-    // Envoyer le score immédiatement au GS dès la fin des questions
-    // (pendant que la vidéo joue, le score est déjà en route)
+    soundLevelClear();
     sendScore(state.playerName, state.score, () => {});
     showRevelationVideo();
     return;
   }
+
   loadQuestion(next);
 }
 
 // ==========================================================================
-// VIDÉO D'INTRO / RÉVÉLATION  (Cloudinary | YouTube | Direct)
+// VIDEO REVELATION
 // ==========================================================================
+function isNativeVideo(type) { return type === "cloudinary" || type === "direct"; }
+function isEmbedVideo(type)  { return type === "cloudinary-embed"; }
 
-// Détermine si le type vidéo utilise l'élément <video> natif
-function isNativeVideo(type) {
-  return type === "cloudinary" || type === "direct";
-}
-
-function isEmbedVideo(type) {
-  return type === "cloudinary-embed";
-}
-
-// Affiche le badge de source
 function showSourceBadge(type) {
   if (!DOM.videoSourceBadge) return;
-  const labels = { cloudinary: "☁️ Cloudinary", "cloudinary-embed": "☁️ Cloudinary", youtube: "▶ YouTube", direct: "📁 Local" };
+  const labels = { cloudinary:"CLOUDINARY", "cloudinary-embed":"CLOUDINARY", youtube:"YOUTUBE", direct:"LOCAL" };
   DOM.videoSourceBadge.textContent = labels[type] || type;
   DOM.videoSourceBadge.style.display = "block";
 }
 
-// Met à jour la barre de progression custom (pour native video)
 function bindVideoTrigger(videoEl, onEnded) {
   if (!videoEl) return;
-  // Bloquer clic droit
   videoEl.addEventListener('contextmenu', e => e.preventDefault());
-  // Déclencher le thème à la vraie fin de la vidéo
   videoEl.addEventListener('ended', onEnded, { once: true });
 }
 
 function showRevelationVideo() {
   showScreen('video');
 
-  const vType = config.revelationVideoType;  // "cloudinary" | "youtube" | "direct"
-  const vId   = config.revelationVideoId;    // URL complète (cloudinary/direct) ou ID (youtube)
+  const vType = config.revelationVideoType;
+  const vId   = config.revelationVideoId;
 
-  // Reset UI
   DOM.videoPlayOverlay.style.display = 'flex';
   if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
-  if (DOM.videoProgressBar)   DOM.videoProgressBar.style.display = 'none';
-  if (DOM.videoProgressFill)  DOM.videoProgressFill.style.width  = '0%';
-  if (DOM.videoCurrentTime)   DOM.videoCurrentTime.textContent   = '0:00';
-  if (DOM.videoDuration)      DOM.videoDuration.textContent      = '0:00';
 
-  // Reset lecteurs précédents
   DOM.videoPlayerRevelation.style.display = 'none';
   DOM.videoPlayerRevelation.pause();
   DOM.videoPlayerRevelation.removeAttribute('src');
   DOM.ytPlayerRevelationPlaceholder.style.display = 'none';
   if (ytPlayerRevelation) { try { ytPlayerRevelation.destroy(); } catch(e){} ytPlayerRevelation = null; }
 
-  // Badge source
   showSourceBadge(vType);
 
-  // Callback de fin → écran révélation thème
   const onEnded = () => {
     if (ytPlayerRevelation) { try { ytPlayerRevelation.destroy(); } catch(e){} ytPlayerRevelation = null; }
-    if (DOM.videoProgressBar) DOM.videoProgressBar.style.display = 'none';
     showThemeRevelationScreen();
   };
 
-  // ── Fonction de lecture ──────────────────────────────────────
   const play = () => {
     DOM.videoPlayOverlay.style.display = 'none';
 
-    // ── CLOUDINARY EMBED (iframe player) ───────────────────────
     if (vType === "cloudinary-embed") {
       const placeholder = DOM.ytPlayerRevelationPlaceholder;
       placeholder.style.display = 'block';
       placeholder.innerHTML = '';
 
-      // Pas de controls, autoplay, attend la vraie fin
-      const embedUrl = vId
-        + (vId.includes('?') ? '&' : '?')
+      const embedUrl = vId + (vId.includes('?') ? '&' : '?')
         + 'autoplay=true&controls=false&muted=false&loop=false&playsinline=true';
 
       const iframe = document.createElement('iframe');
-      iframe.src             = embedUrl;
-      iframe.width           = '100%';
-      iframe.height          = '100%';
-      iframe.style.border    = 'none';
-      iframe.style.display   = 'block';
-      iframe.allow           = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
+      iframe.src = embedUrl;
+      iframe.width = '100%'; iframe.height = '100%';
+      iframe.style.border = 'none'; iframe.style.display = 'block';
+      iframe.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
       iframe.allowFullscreen = false;
 
-      // Spinner pendant chargement
       if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
       iframe.addEventListener('load', () => {
         if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
       });
-
       placeholder.appendChild(iframe);
 
-      // Déclencher à la fin réelle (25s) + postMessage comme backup
       let triggered = false;
       const triggerTheme = () => {
         if (triggered) return;
@@ -541,16 +686,12 @@ function showRevelationVideo() {
         onEnded();
       };
 
-      // Fallback fiable : durée réelle de la vidéo = 25s
       const endTimer = setTimeout(triggerTheme, 25 * 1000);
-
-      // Bonus : postMessage Cloudinary si disponible (annule le timer)
       window.addEventListener('message', function onCldMsg(e) {
         if (!e.data) return;
         try {
           const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-          if (msg.event === 'ended' || msg.type === 'ended' ||
-              (msg.info && msg.info.type === 'ended')) {
+          if (msg.event === 'ended' || msg.type === 'ended') {
             clearTimeout(endTimer);
             window.removeEventListener('message', onCldMsg);
             triggerTheme();
@@ -558,56 +699,23 @@ function showRevelationVideo() {
         } catch(err) {}
       });
     }
-
-    // ── CLOUDINARY DIRECT (URL .mp4) ────────────────────────────
-    else if (vType === "cloudinary") {
+    else if (vType === "cloudinary" || vType === "direct") {
       if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
-
       const vid = DOM.videoPlayerRevelation;
-      vid.style.display   = 'block';
-      vid.style.width     = '100%';
-      vid.style.height    = '100%';
+      vid.style.display = 'block';
+      vid.style.width = '100%'; vid.style.height = '100%';
       vid.style.objectFit = 'contain';
-      vid.src = vId;
-      vid.load();
-
-      vid.addEventListener('canplay', () => {
-        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
-      }, { once: true });
-      vid.addEventListener('waiting', () => {
-        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'flex';
-      });
-      vid.addEventListener('playing', () => {
-        if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none';
-      });
-      vid.play().catch(err => {
-        console.warn("Cloudinary play error:", err);
-        DOM.videoPlayOverlay.style.display = 'flex';
-        DOM.videoPlayOverlay.onclick = () => { DOM.videoPlayOverlay.style.display = 'none'; vid.play(); };
-      });
-      bindVideoTrigger(vid, onEnded);
-    }
-
-    // ── DIRECT (MP4 local ou URL directe) ───────────────────────
-    else if (vType === "direct") {
-      const vid = DOM.videoPlayerRevelation;
-      vid.style.display   = 'block';
-      vid.style.width     = '100%';
-      vid.style.height    = '100%';
-      vid.style.objectFit = 'contain';
-      vid.src = vId;
-      vid.load();
+      vid.src = vId; vid.load();
+      vid.addEventListener('canplay', () => { if (DOM.videoLoadingSpinner) DOM.videoLoadingSpinner.style.display = 'none'; }, { once: true });
       vid.play().catch(() => onEnded());
       bindVideoTrigger(vid, onEnded);
     }
-
-    // ── YOUTUBE ─────────────────────────────────────────────────
     else if (vType === "youtube") {
       ensureYTReady().then(() => {
         DOM.ytPlayerRevelationPlaceholder.style.display = 'block';
         ytPlayerRevelation = new YT.Player('yt-player-revelation', {
           height: '100%', width: '100%', videoId: vId,
-          playerVars: { autoplay: 1, controls: 1, modestbranding: 1, rel: 0, playsinline: 1 },
+          playerVars: { autoplay:1, controls:1, modestbranding:1, rel:0, playsinline:1 },
           events: {
             onReady: e => e.target.playVideo(),
             onStateChange: e => { if (e.data === YT.PlayerState.ENDED) onEnded(); }
@@ -616,30 +724,25 @@ function showRevelationVideo() {
       });
     }
   };
-  // ─────────────────────────────────────────────────────────────
 
-  // Both the overlay and the big play button trigger play
   DOM.videoPlayOverlay.onclick = play;
   if (DOM.btnStartVideo) DOM.btnStartVideo.onclick = e => { e.stopPropagation(); play(); };
-
-  // Pas de bouton skip — le thème s'affiche automatiquement à la fin de la vidéo
 }
 
 // ==========================================================================
-// RÉVÉLATION THÈME
+// REVELATION THEME
 // ==========================================================================
 function showThemeRevelationScreen() {
-  DOM.revealedThemeText.textContent = config.themeToReveal || "🚀 SURPRISE 2026 🚀";
+  DOM.revealedThemeText.textContent = config.themeToReveal || "SURPRISE 2026";
+  soundLevelClear();
   showScreen('themeRevelation');
 }
 
 // ==========================================================================
-// VIDÉO DE FIN (loop muette derrière le leaderboard)
+// VIDEO DE FIN
 // ==========================================================================
 function startEndingVideo() {
-  const vType = config.endingVideoType;
-  const vId   = config.endingVideoId;
-
+  const vType = config.endingVideoType, vId = config.endingVideoId;
   DOM.videoPlayerEnding.style.display = 'none';
   DOM.ytPlayerEndingPlaceholder.style.display = 'none';
   DOM.videoPlayerEnding.pause();
@@ -649,29 +752,24 @@ function startEndingVideo() {
     ensureYTReady().then(() => {
       DOM.ytPlayerEndingPlaceholder.style.display = 'block';
       ytPlayerEnding = new YT.Player('yt-player-ending', {
-        height: '100%', width: '100%', videoId: vId,
-        playerVars: { autoplay:1, controls:0, disablekb:1, fs:0, iv_load_policy:3, loop:1, playlist:vId, modestbranding:1, mute:1, rel:0, playsinline:1 },
-        events: { onReady: e => { e.target.mute(); e.target.playVideo(); } }
+        height:'100%', width:'100%', videoId:vId,
+        playerVars:{autoplay:1,controls:0,disablekb:1,fs:0,iv_load_policy:3,loop:1,playlist:vId,modestbranding:1,mute:1,rel:0,playsinline:1},
+        events:{onReady:e=>{e.target.mute();e.target.playVideo();}}
       });
     });
   } else {
-    // cloudinary ou direct → même traitement (URL directe)
     DOM.videoPlayerEnding.style.display = 'block';
-    DOM.videoPlayerEnding.src   = vId;
+    DOM.videoPlayerEnding.src = vId;
     DOM.videoPlayerEnding.muted = true;
-    DOM.videoPlayerEnding.loop  = true;
+    DOM.videoPlayerEnding.loop = true;
     DOM.videoPlayerEnding.load();
-    DOM.videoPlayerEnding.play().catch(() => {});
+    DOM.videoPlayerEnding.play().catch(()=>{});
   }
 }
 
 function stopEndingVideo() {
-  if (isNativeVideo(config.endingVideoType)) {
-    DOM.videoPlayerEnding.pause();
-  } else if (ytPlayerEnding) {
-    try { ytPlayerEnding.destroy(); } catch(e){}
-    ytPlayerEnding = null;
-  }
+  if (isNativeVideo(config.endingVideoType)) DOM.videoPlayerEnding.pause();
+  else if (ytPlayerEnding) { try { ytPlayerEnding.destroy(); } catch(e){} ytPlayerEnding = null; }
 }
 
 // ==========================================================================
@@ -679,27 +777,46 @@ function stopEndingVideo() {
 // ==========================================================================
 function endGame() {
   DOM.resultsPlayerName.textContent = state.playerName;
-  DOM.resultsFinalScore.textContent = state.score;
+
+  // Score final animé depuis 0
+  DOM.resultsFinalScore.textContent = '0';
+  let displayed = 0;
+  const target = state.score;
+  const duration = 1200;
+  const start = performance.now();
+  function animFinal(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    displayed = Math.round(eased * target);
+    DOM.resultsFinalScore.textContent = displayed;
+    if (t < 1) requestAnimationFrame(animFinal);
+    else {
+      DOM.resultsFinalScore.textContent = target;
+      soundLevelClear();
+    }
+  }
+  requestAnimationFrame(animFinal);
+
   const max = questionsList.length * config.pointsPerQuestion;
-  DOM.resultsRankTitle.textContent  = getRankBadge(state.score, max);
+  DOM.resultsRankTitle.textContent = getRankBadge(state.score, max);
+
   showScreen('results');
   startEndingVideo();
-  // Score déjà envoyé au GS dès la fin des questions
-  // On recharge juste le leaderboard depuis GS (déjà à jour)
   renderLeaderboardView();
+  startLeaderboardAutoRefresh();
 }
 
 function shareScore() {
-  const max   = questionsList.length * config.pointsPerQuestion;
-  const badge = getRankBadge(state.score, max).split(' (')[0];
-  const text  = `🕵️‍♂️ Super Mario Quiz — Édition Équipe\n👤 ${state.playerName}\n🏆 ${state.score} pts\n🏅 ${badge}\n🎮 Relevez le défi !`;
+  const max = questionsList.length * config.pointsPerQuestion;
+  const badge = getRankBadge(state.score, max);
+  const text  = `Super Mario Quiz - Edition Equipe\nJoueur : ${state.playerName}\nScore : ${state.score} pts\nRang : ${badge}\nRelevez le defi !`;
   navigator.clipboard.writeText(text)
     .then(() => {
       const orig = DOM.btnShareScore.innerHTML;
-      DOM.btnShareScore.innerHTML = '<span>Copié ! ✓</span>';
+      DOM.btnShareScore.innerHTML = '<span>COPIE !</span>';
       setTimeout(() => DOM.btnShareScore.innerHTML = orig, 2000);
     })
-    .catch(() => alert("Score :\n\n" + text));
+    .catch(() => alert(text));
 }
 
 // ==========================================================================
@@ -710,8 +827,11 @@ function setupEventListeners() {
   DOM.btnNextQuestion.addEventListener('click', handleNextQuestion);
   DOM.btnShareScore.addEventListener('click', shareScore);
   DOM.btnGoToResults.addEventListener('click', endGame);
-  DOM.btnRestartGame.addEventListener('click', () => { stopEndingVideo(); initGame(); });
-  // Bouton reset supprimé
+  DOM.btnRestartGame.addEventListener('click', () => {
+    stopEndingVideo();
+    stopLeaderboardAutoRefresh();
+    initGame();
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
