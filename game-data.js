@@ -32,7 +32,7 @@ window.gameData = {
     {
       id: "q_02",
       category: "process",
-      title: "Qu est-ce que le Trim Card ?",
+      title: "Qui suis-je ?",
       clues: [
         "Le lancement de la production approche et notre equipe interne doit s assurer que tout est en ordre.",
         "Un seul objet physique centralise tous les elements necessaires pour que l assemblage soit conforme aux attentes.",
