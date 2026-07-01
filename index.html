@@ -2161,6 +2161,7 @@ function showNextPlayerScreen(nextName, callback) {
 // ==========================================================================
 function loadLeaderboard(cb) {
   if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
+    // Mode GS : on ignore totalement le localStorage
     const callbackName = 'gsCallback_' + Date.now();
     const script = document.createElement('script');
 
@@ -2170,21 +2171,30 @@ function loadLeaderboard(cb) {
       if (Array.isArray(data)) {
         state.leaderboard = data;
         cb && cb(data);
-      } else loadLocalLeaderboard(cb);
+      } else {
+        // GS ne répond pas correctement → afficher vide (pas le localStorage)
+        cb && cb([]);
+      }
     };
 
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(function() {
       if (window[callbackName]) {
         delete window[callbackName];
         try { document.body.removeChild(script); } catch(e){}
-        loadLocalLeaderboard(cb);
+        cb && cb([]);
       }
     }, 5000);
 
-    script.onerror = () => { clearTimeout(timeout); delete window[callbackName]; loadLocalLeaderboard(cb); };
+    script.onerror = function() {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      cb && cb([]);
+    };
+
     script.src = config.googleSheetsUrl + '?action=get&callback=' + callbackName + '&t=' + Date.now();
     document.body.appendChild(script);
   } else {
+    // Pas de GS configuré → localStorage uniquement
     loadLocalLeaderboard(cb);
   }
 }
@@ -2296,9 +2306,15 @@ function initGame() {
   state.clueTexts = {};
   DOM.gameScore.textContent = formatScore(0);
   stopLeaderboardAutoRefresh();
+
+  // Si GS configuré : vider le localStorage pour éviter les doublons
+  if (config.googleSheetsUrl && config.googleSheetsUrl.trim() !== "") {
+    localStorage.removeItem('synapse_leaderboard');
+  }
+
   showScreen('welcome');
   renderLeaderboardView();
-  startRealtimeCheck(); // surveiller les scores dès l accueil
+  startRealtimeCheck();
 }
 
 function startPlay() {
