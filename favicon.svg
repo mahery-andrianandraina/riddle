@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Fond rouge chapeau -->
+  <rect x="4" y="2" width="24" height="14" rx="12" ry="12" fill="#e52521"/>
+  <!-- Blanc chapeau (pois) -->
+  <circle cx="10" cy="8" r="3" fill="#ffffff"/>
+  <circle cx="22" cy="8" r="3" fill="#ffffff"/>
+  <circle cx="16" cy="5" r="2.5" fill="#ffffff"/>
+  <!-- Corps blanc champignon -->
+  <rect x="8" y="14" width="16" height="10" rx="2" fill="#ffffff"/>
+  <!-- Bord noir bas -->
+  <rect x="8" y="22" width="16" height="2" rx="1" fill="#fcd8a0"/>
+  <!-- Yeux -->
+  <rect x="11" y="16" width="4" height="4" rx="1" fill="#000000"/>
+  <rect x="17" y="16" width="4" height="4" rx="1" fill="#000000"/>
+  <!-- Reflets yeux -->
+  <rect x="12" y="17" width="1.5" height="1.5" fill="#ffffff"/>
+  <rect x="18" y="17" width="1.5" height="1.5" fill="#ffffff"/>
+  <!-- Pieds -->
+  <rect x="9" y="24" width="5" height="4" rx="2" fill="#fcd8a0"/>
+  <rect x="18" y="24" width="5" height="4" rx="2" fill="#fcd8a0"/>
+  <!-- Contour général -->
+  <rect x="4" y="2" width="24" height="14" rx="12" ry="12" fill="none" stroke="#000" stroke-width="1.5"/>
+  <rect x="8" y="14" width="16" height="10" rx="2" fill="none" stroke="#000" stroke-width="1.5"/>
+</svg>
