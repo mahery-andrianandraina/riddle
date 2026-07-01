@@ -1367,6 +1367,97 @@ body.screen-shake { animation: screenShake 0.5s steps(4, end); }
   color: var(--color-luigi-green);
 }
 
+/* ==========================================================================
+   EFFET MATRIX — Texte brouillé avant déchiffrement
+   ========================================================================== */
+
+/* Indice verrouillé : texte scramble en vert Matrix */
+.clue-item.locked {
+  opacity: 1;
+  filter: none;
+  border-color: #1a3a1a;
+  background: rgba(0, 20, 0, 0.4);
+}
+
+.clue-item.locked .clue-text-content {
+  font-family: 'Courier New', monospace;
+  color: #00ff41;
+  text-shadow: 0 0 4px #00ff41, 0 0 8px rgba(0,255,65,0.4);
+  letter-spacing: 1px;
+  opacity: 0.85;
+  animation: matrixFlicker 0.15s steps(2) infinite;
+}
+
+@keyframes matrixFlicker {
+  0%, 100% { opacity: 0.85; }
+  50%       { opacity: 0.65; }
+}
+
+.clue-item.locked .clue-label {
+  color: #00ff41;
+  opacity: 0.5;
+}
+
+/* Pendant le déchiffrement (juste après reveal, avant texte final) */
+.clue-item.revealed .clue-text-content {
+  font-family: var(--font-body);
+  color: var(--text-secondary);
+  text-shadow: none;
+  letter-spacing: normal;
+  animation: none;
+  transition: color 0.4s, text-shadow 0.4s;
+}
+
+/* Glow doré au moment exact du déchiffrement complet */
+.clue-item.just-revealed .clue-text-content {
+  animation: decryptGlow 0.6s ease-out;
+}
+@keyframes decryptGlow {
+  0%   { color: #00ff41; text-shadow: 0 0 8px #00ff41; }
+  100% { color: var(--text-secondary); text-shadow: none; }
+}
+
+/* Badge timing sur indice verrouillé = vert matrix aussi */
+.clue-item.locked .clue-timing-badge {
+  color: #00ff41;
+  border-color: #1a5a1a;
+  text-shadow: 0 0 3px #00ff41;
+}
+
+/* ==========================================================================
+   EFFET MATRIX SUR LES INDICES CACHES
+   ========================================================================== */
+
+/* Indice en cours de décodage Matrix */
+.clue-item.scrambled .clue-text-content {
+  color: #00ff41;              /* vert Matrix */
+  font-family: monospace, 'Press Start 2P';
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  opacity: 0.55;
+  text-shadow: 0 0 6px rgba(0, 255, 65, 0.5);
+}
+
+.clue-item.scrambled {
+  border-color: #003300 !important;
+  background: rgba(0, 20, 0, 0.4) !important;
+}
+
+/* Indice en cours de décodage (unscramble en cours) */
+.clue-item.just-revealed .clue-text-content {
+  color: #00ff41;
+  font-family: monospace;
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.8);
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+/* Indice pleinement révélé */
+.clue-item.revealed .clue-text-content {
+  color: var(--text-secondary);
+  text-shadow: none;
+  font-family: var(--font-body);
+}
+
   </style>
 </head>
 <body>
@@ -1549,7 +1640,7 @@ window.gameData = {
     googleSheetsUrl: "https://script.google.com/macros/s/AKfycbxT1Rs4am-k6SaX3CGIEyew2AIAA8Ogmwmti73Fhvaswkgnji5Q2Yoy1_6vRTAgko1R/exec",
     pointsPerQuestion: 1000,
     timeLimitSeconds: 25,
-    themeToReveal: "NOTRE THEME POUR LUNDI EST ",
+    themeToReveal: "LE THEME VESTIMENTAIRE DU LUNDI EST REVELE !",
     revelationVideoType: "cloudinary-embed",
     revelationVideoId:   "https://player.cloudinary.com/embed/?cloud_name=djz4uow1p&public_id=Revelation_q0bhoc",
     endingVideoType: "direct",
@@ -2260,6 +2351,61 @@ function startPlay() {
   startRealtimeCheck(); // démarrer la surveillance des nouveaux scores
 }
 
+// ==========================================================================
+// EFFET MATRIX — Texte brouillé qui se déchiffre
+// ==========================================================================
+const SCRAMBLE_CHARS = '!<>-_\\/[]{}—=+*^?#________';
+
+function scrambleText(text) {
+  return text.split('').map(c => {
+    if (c === ' ' || c === '\n') return c;
+    return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+  }).join('');
+}
+
+// Lance l'animation de scramble continu sur un élément (boucle jusqu'à decrypt)
+function startScrambleLoop(el, originalText) {
+  if (el._scrambleId) clearInterval(el._scrambleId);
+  el._scrambleId = setInterval(() => {
+    if (el._decrypted) { clearInterval(el._scrambleId); return; }
+    el.textContent = scrambleText(originalText);
+  }, 60);
+}
+
+// Déchiffre le texte progressivement de gauche à droite (effet Matrix decrypt)
+function decryptText(el, originalText, onDone) {
+  el._decrypted = true;
+  if (el._scrambleId) clearInterval(el._scrambleId);
+
+  const chars = originalText.split('');
+  let revealedCount = 0;
+  const totalChars = chars.filter(c => c !== ' ' && c !== '\n').length;
+  const speed = Math.max(8, Math.floor(400 / Math.max(totalChars, 1)));
+
+  const decryptId = setInterval(() => {
+    revealedCount++;
+    let displayed = '';
+    let revealed = 0;
+    for (let i = 0; i < chars.length; i++) {
+      const c = chars[i];
+      if (c === ' ' || c === '\n') { displayed += c; continue; }
+      if (revealed < revealedCount) {
+        displayed += c;
+      } else {
+        displayed += SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+      }
+      revealed++;
+    }
+    el.textContent = displayed;
+
+    if (revealedCount >= totalChars) {
+      clearInterval(decryptId);
+      el.textContent = originalText;
+      if (onDone) onDone();
+    }
+  }, speed);
+}
+
 // Calcule les timings de déclenchement des indices (ex: [0, 8, 17] pour 25s/3indices)
 function computeClueTriggers(totalSecs, clueCount) {
   const step = Math.floor(totalSecs / clueCount);
@@ -2296,20 +2442,34 @@ function loadQuestion(index) {
   const clues = state.activeQuestion.clues;
   state.clueTriggers = computeClueTriggers(config.timeLimitSeconds, clues.length);
 
-  // Construire tous les indices d'avance avec badges de timing (grisés, sauf le 1er)
+  // Construire tous les indices d'avance — texte brouillé sauf le 1er
   clues.forEach((text, idx) => {
     const triggerTime = state.clueTriggers[idx];
     const el = document.createElement('div');
-    el.className = 'clue-item' + (idx === 0 ? ' revealed active' : '');
+    el.className = 'clue-item' + (idx === 0 ? ' revealed active' : ' locked');
     el.id = `clue-item-${idx}`;
     el.innerHTML = `
       <div class="clue-label-row">
         <span class="clue-label">INDICE ${idx + 1}</span>
         <span class="clue-timing-badge" id="clue-badge-${idx}">${idx === 0 ? 'OK' : triggerTime + 's'}</span>
       </div>
-      <p>${text}</p>
+      <p class="clue-text-content" id="clue-text-${idx}"></p>
     `;
     DOM.cluesContainer.appendChild(el);
+
+    const textEl = el.querySelector(`#clue-text-${idx}`);
+    textEl._decrypted = false;
+    textEl._originalText = text;
+
+    if (idx === 0) {
+      // Premier indice : déjà visible directement
+      textEl._decrypted = true;
+      textEl.textContent = text;
+    } else {
+      // Autres indices : démarrer le scramble continu
+      textEl.textContent = scrambleText(text);
+      startScrambleLoop(textEl, text);
+    }
   });
 
   // Construire la timeline horizontale en bas
@@ -2364,9 +2524,9 @@ function revealClue(idx) {
   // Marquer tous comme non-actifs
   DOM.cluesContainer.querySelectorAll('.clue-item').forEach(c => c.classList.remove('active'));
 
-  // Activer le bon indice (déjà dans le DOM)
   const el = document.getElementById(`clue-item-${idx}`);
   if (el) {
+    el.classList.remove('locked');
     el.classList.add('revealed', 'active', 'just-revealed');
     setTimeout(() => el.classList.remove('just-revealed'), 600);
   }
@@ -2377,7 +2537,17 @@ function revealClue(idx) {
   const marker = document.getElementById(`timeline-marker-${idx}`);
   if (marker) marker.classList.add('passed');
 
-  soundCoin();
+  // Déclencher le déchiffrement progressif (style Matrix)
+  const textEl = document.getElementById(`clue-text-${idx}`);
+  if (textEl && !textEl._decrypted) {
+    decryptText(textEl, text, () => {
+      soundCoin();
+    });
+    // Petit bip de démarrage du déchiffrement
+    playTone(880, 'square', 0.04, 0.08, 0);
+  } else {
+    soundCoin();
+  }
 }
 
 // ==========================================================================
@@ -2429,6 +2599,7 @@ function updateTimerVisual(val, max) {
 function stopQuestionIntervals() {
   clearInterval(state.timerIntervalId);
   clearInterval(state.clueIntervalId);
+  stopMatrixAnimation();
 }
 
 function calculateScore(timeLeft, cluesShown) {
