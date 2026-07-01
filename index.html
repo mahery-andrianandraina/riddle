@@ -2333,6 +2333,7 @@ function initGame() {
   state.score = 0;
   state.displayedScore = 0;
   state.currentQuestionIndex = 0;
+  state.clueTexts = {};
   DOM.gameScore.textContent = formatScore(0);
   stopLeaderboardAutoRefresh();
   showScreen('welcome');
@@ -2524,17 +2525,17 @@ function revealClue(idx) {
   // Marquer tous comme non-actifs
   DOM.cluesContainer.querySelectorAll('.clue-item').forEach(c => c.classList.remove('active'));
 
-  const el = document.getElementById(`clue-item-${idx}`);
+  const el = document.getElementById('clue-item-' + idx);
   if (el) {
     el.classList.remove('locked');
     el.classList.add('revealed', 'active', 'just-revealed');
     setTimeout(() => el.classList.remove('just-revealed'), 600);
   }
 
-  const badge = document.getElementById(`clue-badge-${idx}`);
+  const badge = document.getElementById('clue-badge-' + idx);
   if (badge) badge.textContent = 'OK';
 
-  const marker = document.getElementById(`timeline-marker-${idx}`);
+  const marker = document.getElementById('timeline-marker-' + idx);
   if (marker) marker.classList.add('passed');
 
   // Déclencher le déchiffrement progressif (style Matrix)
